@@ -1,8 +1,8 @@
-#include "EWEngine/Graphics/QueueSyncPool.h"
+#include "EWGraphics/Vulkan/QueueSyncPool.h"
 
-#include "EWEngine/Data/EWE_Memory.h"
-#include "EWEngine/Systems/ThreadPool.h"
-#include "EWEngine/Graphics/Texture/ImageFunctions.h"
+#include "EWGraphics/Data/EWE_Memory.h"
+#include "EWGraphics/Data/ThreadPool.h"
+#include "EWGraphics/Texture/ImageFunctions.h"
 
 #include <sstream>
 

@@ -1,6 +1,6 @@
-#include "EWEngine/Graphics/Device.hpp"
+#include "EWGraphics/Vulkan/Device.hpp"
 
-#include "EWEngine/Graphics/Texture/Sampler.h" //this is only for construction and deconstruction, do not call Sampler directly from device.cpp
+#include "EWGraphics/Texture/Sampler.h" //this is only for construction and deconstruction, do not call Sampler directly from device.cpp
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
@@ -724,7 +724,7 @@ namespace EWE {
 
             EWE_VK(vkCreateCommandPool, VK::Object->vkDevice, &poolInfo, nullptr, &VK::Object->renderCmdPool);
 #if DEBUG_NAMING
-            DebugNaming::SetObjectName(VK::Object->renderCmdPool, VK_OBJECT_TYPE_COMMAND_POOL, "render cmd pool");
+            DebugNaming::SetObjectName(reinterpret_cast<void*>(VK::Object->renderCmdPool), VK_OBJECT_TYPE_COMMAND_POOL, "render cmd pool");
 #endif
         }
     }

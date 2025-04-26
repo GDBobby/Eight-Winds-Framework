@@ -1,9 +1,9 @@
-#include "EWEngine/Graphics/Texture/UI_Texture.h"
-#include "EWEngine/Graphics/Texture/Sampler.h"
+#include "EWGraphics/Texture/UI_Texture.h"
+#include "EWGraphics/Texture/Sampler.h"
 
-#include "EWEngine/Graphics/Texture/ImageFunctions.h"
+#include "EWGraphics/Texture/ImageFunctions.h"
 
-#include "EWEngine/Data/EWE_Memory.h"
+#include "EWGraphics/Data/EWE_Memory.h"
 
 #include <stb/stb_image.h>
 #include <cmath>
@@ -76,7 +76,7 @@ namespace EWE {
 
             Image::CreateImageWithInfo(imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, uiImageInfo.image, uiImageInfo.memory);
 #if DEBUG_NAMING
-            DebugNaming::SetObjectName(uiImageInfo.image, VK_OBJECT_TYPE_IMAGE, pixelPeek[0].debugName.c_str());
+            DebugNaming::SetObjectName(reinterpret_cast<void*>(uiImageInfo.image), VK_OBJECT_TYPE_IMAGE, pixelPeek[0].debugName.c_str());
 #endif
 #if IMAGE_DEBUGGING
             uiImageInfo.imageName = pixelPeek[0].debugName;

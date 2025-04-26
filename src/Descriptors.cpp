@@ -1,6 +1,6 @@
-#include "EWEngine/Graphics/Descriptors.h"
+#include "EWGraphics/Vulkan/Descriptors.h"
 
-#include "EWEngine/Graphics/Texture/Image_Manager.h"
+#include "EWGraphics/Texture/Image_Manager.h"
 
 // std
 #include <cassert>

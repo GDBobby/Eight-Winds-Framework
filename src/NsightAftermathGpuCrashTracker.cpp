@@ -23,7 +23,7 @@
 //*********************************************************
 
 #if USING_NVIDIA_AFTERMATH
-#include "EWEngine/Graphics/Debug/NsightAftermathGpuCrashTracker.h"
+#include "EWGraphics/Debug/NsightAftermathGpuCrashTracker.h"
 #include <fstream>
 #include <iomanip>
 #include <string>

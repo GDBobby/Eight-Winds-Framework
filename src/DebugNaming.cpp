@@ -1,6 +1,6 @@
-#include "EWEngine/Graphics/DebugNaming.h"
+#include "EWGraphics/Vulkan/DebugNaming.h"
 
-#include "EWEngine/Graphics/VulkanHeader.h"
+#include "EWGraphics/Vulkan/VulkanHeader.h"
 
 #include <cassert>
 
@@ -70,20 +70,22 @@ namespace EWE{
         }
 
         void Deconstruct(){}
-        void SetObjectName(void* object, VkObjectType objectType, const char* name) {
-                // Check for a valid function pointer
-                if (enabled) {
-                    VkDebugUtilsObjectNameInfoEXT nameInfo{};
-                    nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-                    nameInfo.pNext = nullptr;
-                    nameInfo.objectHandle = reinterpret_cast<uint64_t>(object);
-                    nameInfo.objectType = objectType;
-                    nameInfo.pObjectName = name;
-                    //pfnDebugMarkerSetObjectName(device, &nameInfo);
-                    pfnSetObjectName(VK::Object->vkDevice, &nameInfo);
 
-                }
+        void SetObjectName(void* object, VkObjectType objectType, const char* name) {
+            // Check for a valid function pointer
+            if (enabled) {
+                VkDebugUtilsObjectNameInfoEXT nameInfo{};
+                nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+                nameInfo.pNext = nullptr;
+                nameInfo.objectHandle = reinterpret_cast<uint64_t>(object);
+                nameInfo.objectType = objectType;
+                nameInfo.pObjectName = name;
+                //pfnDebugMarkerSetObjectName(device, &nameInfo);
+                pfnSetObjectName(VK::Object->vkDevice, &nameInfo);
+
             }
+        }
+
     } //namespace DebugNaming
 #endif
 } //namespace EWE

@@ -1,6 +1,6 @@
-#include "EWEngine/LoadingScreen/LeafSystem.h"
-#include "EWEngine/Data/EWE_Import.h"
-#include "EWEngine/Graphics/Texture/Image_Manager.h"
+#include "EWGraphics/LeafSystem.h"
+//#include "EWGraphics/Data/EWE_Import.h"
+#include "EWGraphics/Texture/Image_Manager.h"
 
 namespace EWE {
 	//id like to move some of the random generation components to local scope on leaf generation, not sure which ones yet
@@ -56,7 +56,7 @@ namespace EWE {
 #endif
 
 		for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			leafBuffer[i] = Construct<EWEBuffer>({ sizeof(lab::mat4) * LEAF_COUNT, 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT });
+			leafBuffer[i] = Construct<EWEBuffer>({ sizeof(lab::mat4) * LEAF_COUNT + sizeof(lab::mat4) + sizeof(lab::vec4), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT });
 
 			leafBuffer[i]->Map();
 
@@ -327,24 +327,10 @@ namespace EWE {
 		std::ifstream inFile("models/leaf_simpleNTMesh.ewe", std::ifstream::binary);
 		//inFile.open();
 		assert(inFile.is_open() && "failed to open leaf model");
-		//printf("before formatingg input file in mesh \n");
-		//printf("before synchronizing \n");
-		//binary_input_archive& fileData;
-		ImportData::TemplateMeshData<VertexNT> importMesh{};
 
-		uint32_t endianTest = 1;
-		bool endian = (*((char*)&endianTest) == static_cast<char>(1));
+		leafModel = EWEModel::CreateModelFromObj("models/leaf.obj");
 
-		if (endian) {
-			importMesh.ReadFromFile(inFile);
-		}
-		else {
-			importMesh.ReadFromFileSwapEndian(inFile);
-		}
 		inFile.close();
-		//printf("file read successfully \n");
-
-		leafModel = Construct<EWEModel>({ importMesh.meshes[0].vertices.data(), importMesh.meshes[0].vertices.size(), importMesh.vertex_size, importMesh.meshes[0].indices});
 
 #if DEBUG_NAMING
 		leafModel->SetDebugNames("leafModel");
@@ -361,11 +347,10 @@ namespace EWE {
 	}
 
 	void LeafSystem::CreateDescriptor() {
+		
+
 		for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			EWEDescriptorWriter descWriter{leafEDSL, DescriptorPool_Global};
-			DescriptorHandler::AddGlobalsToDescriptor(descWriter, i);
-			//descWriter.WriteImage(leafImageInfo.GetDescriptorImageInfo());
-
 			descWriter.WriteImage(leafImgID);
 			descWriter.WriteBuffer(leafBuffer[i]->DescriptorInfo());
 			leafDescriptor[i] = descWriter.Build();
@@ -411,9 +396,8 @@ namespace EWE {
 
 		EWEDescriptorSetLayout::Builder dslBuilder{};
 		leafEDSL = dslBuilder
-		.AddGlobalBindings()
+		.AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
 		.AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-		.AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
 		.Build();
 
 		pipelineLayoutInfo.setLayoutCount = 1;

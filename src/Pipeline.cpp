@@ -1,12 +1,12 @@
-#include "EWEngine/Graphics/Pipeline.h"
+#include "EWGraphics/Vulkan/Pipeline.h"
 
 
-#include "EWEngine/Graphics/Model/Model.h"
-#include "EWEngine/Graphics/Renderer.h"
+#include "EWGraphics/Model/Model.h"
+#include "EWGraphics/Vulkan/Renderer.h"
 
 #if PIPELINE_HOT_RELOAD
-#include "EWEngine/Data/magic_enum.hpp"
-#include "EWEngine/imgui/imgui.h"
+#include "EWGraphics/Data/magic_enum.hpp"
+#include "EWGraphics/imgui/imgui.h"
 
 #include <algorithm>
 #endif
@@ -237,42 +237,6 @@ namespace EWE {
 		}
 		CreateGraphicsPipeline(configInfo);
 	}
-	EWEPipeline::EWEPipeline(ShaderStringStruct const& stringStruct, MaterialFlags const flags, PipelineConfigInfo& configInfo)
-#if PIPELINE_HOT_RELOAD
-		: copyConfigInfo{ configInfo },
-		copyStringStruct{ stringStruct }
-#endif
-	{
-#if EWE_DEBUG
-		Validate(stringStruct);
-#endif
-		assert(stringStruct.filepath[Shader::frag].size() == 0);
-
-		for (uint8_t i = 0; i < Shader::Stage::COUNT; i++) {
-			if (stringStruct.filepath[i].size() > 0) {
-				GetShader(stringStruct.filepath[i], shaderModules[i]);
-			}
-		}
-
-		std::string fragPath = SHADER_DIR;
-		fragPath += "dynamic/" + std::to_string(flags) + "b.frag.spv";
-		const auto fragFind = shaderModuleMap.find(fragPath);
-		if (fragFind == shaderModuleMap.end()) {
-			printf("creating fragment shader : %d \n", flags);
-			Pipeline_Helper_Functions::CreateShaderModule(ShaderBlock::GetFragmentShader(flags), &shaderModules[Shader::frag]);
-			shaderMapMutex.lock();
-			shaderModuleMap.try_emplace(fragPath, shaderModules[Shader::frag]);
-			shaderMapMutex.unlock();
-		}
-		else {
-			shaderMapMutex.lock();
-			fragFind->second.usageCount++;
-			shaderModules[Shader::frag] = fragFind->second.shader;
-			shaderMapMutex.unlock();
-		}
-
-		CreateGraphicsPipeline(configInfo);
-	}
 
 	EWEPipeline::EWEPipeline(VkShaderModule vertShaderModu, VkShaderModule fragShaderModu, const PipelineConfigInfo& configInfo)
 #if PIPELINE_HOT_RELOAD
@@ -282,51 +246,6 @@ namespace EWE {
 	{
 		shaderModules[Shader::vert] = vertShaderModu;
 		shaderModules[Shader::frag] = fragShaderModu;
-		CreateGraphicsPipeline(configInfo);
-	}
-
-	EWEPipeline::EWEPipeline(uint16_t boneCount, MaterialFlags flags, const PipelineConfigInfo& configInfo) {
-		std::string vertPath = SHADER_DIR;
-		//this is always instanced???
-		bool hasNormal = (flags & Material::Flags::Texture::Normal) > 0;
-		if (hasNormal) {
-			vertPath += "dynamic/n" + std::to_string(boneCount) + ".vert.spv";
-		}
-		else {
-			vertPath += "dynamic/" + std::to_string(boneCount) + ".vert.spv";
-		}
-		const auto vertFind = shaderModuleMap.find(vertPath);
-		if (vertFind == shaderModuleMap.end()) {
-			printf("creating vertex shader - %d:%d \n", boneCount, flags);
-			//auto vertCode = readFile(vertPath);
-			Pipeline_Helper_Functions::CreateShaderModule(ShaderBlock::GetVertexShader(hasNormal, boneCount, true), &shaderModules[Shader::vert]);
-			shaderMapMutex.lock();
-			shaderModuleMap.try_emplace(vertPath, shaderModules[Shader::vert]);
-			shaderMapMutex.unlock();
-		}
-		else {
-			shaderMapMutex.lock();
-			vertFind->second.usageCount++;
-			shaderModules[Shader::vert] = vertFind->second.shader;
-			shaderMapMutex.unlock();
-		}
-		std::string fragPath = SHADER_DIR;
-		fragPath += "dynamic/" + std::to_string(flags) + "b.frag.spv";
-		const auto fragFind = shaderModuleMap.find(fragPath);
-		if (fragFind == shaderModuleMap.end()) {
-			printf("creating fragment shader : %d \n", flags);
-			Pipeline_Helper_Functions::CreateShaderModule(ShaderBlock::GetFragmentShader(flags), &shaderModules[Shader::frag]);
-			shaderMapMutex.lock();
-			shaderModuleMap.try_emplace(fragPath, shaderModules[Shader::frag]);
-			shaderMapMutex.unlock();
-		}
-		else {
-			shaderMapMutex.lock();
-			fragFind->second.usageCount++;
-			shaderModules[Shader::frag] = fragFind->second.shader;
-			shaderMapMutex.unlock();
-		}
-
 		CreateGraphicsPipeline(configInfo);
 	}
 
@@ -495,6 +414,7 @@ namespace EWE {
 		configInfo.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 	}
 
+#if PIPELINE_HOT_RELOAD
 	EWEPipeline::PipelineConfigInfo::PipelineConfigInfo(PipelineConfigInfo const& other) {
 
 		bindingDescriptions = other.bindingDescriptions;
@@ -521,6 +441,7 @@ namespace EWE {
 
 		pipelineRenderingInfo = *PipelineConfigInfo::pipelineRenderingInfoStatic;
 	}
+#endif
 
 	void EWEPipeline::DefaultPipelineConfigInfo(PipelineConfigInfo& configInfo) {
 

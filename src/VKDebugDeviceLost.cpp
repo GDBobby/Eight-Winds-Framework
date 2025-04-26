@@ -1,4 +1,4 @@
-#include "EWEngine/Graphics/VkDebugDeviceLost.h"
+#include "EWGraphics/Debug/VkDebugDeviceLost.h"
 
 #if DEBUGGING_DEVICE_LOST
 #include <cstdio>

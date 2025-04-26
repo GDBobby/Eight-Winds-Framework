@@ -1,4 +1,4 @@
-#include "EWEngine/Graphics/VulkanHeader.h"
+#include "EWGraphics/Vulkan/VulkanHeader.h"
 
 #if CALL_TRACING
 #if _WIN32
@@ -11,7 +11,7 @@
 
 #if USING_VMA
 #define VMA_IMPLEMENTATION
-#include "EWEngine/Graphics/vk_mem_alloc.h"
+#include "EWGraphics/Vulkan/vk_mem_alloc.h"
 #endif
 #if CALL_TRACING
 void EWE_VK_RESULT(VkResult vkResult, const std::source_location& sourceLocation) {

@@ -1,8 +1,9 @@
-#include "EWEngine/Systems/PipelineSystem.h"
+#include "EWGraphics/PipelineSystem.h"
+#if PIPELINE_HOT_RELOAD
+#include "EWGraphics/imgui/imgui.h"
+#endif
 
-#include "EWEngine/imgui/imgui.h"
-
-#include "EWEngine/Graphics/Texture/Image_Manager.h"
+#include "EWGraphics/Texture/Image_Manager.h"
 
 namespace EWE {
 	std::unordered_map<PipelineID, PipelineSystem*> PipelineSystem::pipelineSystem{};

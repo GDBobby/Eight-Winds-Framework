@@ -22,7 +22,7 @@
 //
 //*********************************************************
 #if USING_NVIDIA_AFTERMATH
-#include "EWEngine/Graphics/Debug/NsightAftermathShaderDatabase.h"
+#include "EWGraphics/Debug/NsightAftermathShaderDatabase.h"
 #include <fstream>
 #include <iomanip>
 

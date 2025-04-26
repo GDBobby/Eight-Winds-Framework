@@ -1,4 +1,4 @@
-#include "EWEngine/Graphics/Model/Vertex.h"
+#include "EWGraphics/Model/Vertex.h"
 
 namespace EWE {
 
@@ -169,38 +169,6 @@ namespace EWE {
         attributeDescriptions[0].offset = static_cast<uint32_t>(offsetof(VertexGrid2D, position));
 
         return attributeDescriptions;
-    }
-
-    void boneVertex::swapEndian() {
-        Reading::swapGLMVec3Endian(position);
-        Reading::swapGLMVec3Endian(normal);
-        Reading::swapGLMVec2Endian(uv);
-        Reading::swapGLMVec3Endian(tangent);
-        for (int i = 0; i < MAX_BONE_INFLUENCE; i++) {
-            Reading::swapBasicEndian(m_BoneIDs + i, sizeof(int));
-            Reading::swapBasicEndian(m_Weights + i, sizeof(int));
-        }
-    }
-
-    void boneVertexNoTangent::swapEndian() {
-        Reading::swapGLMVec3Endian(position);
-        Reading::swapGLMVec3Endian(normal);
-        Reading::swapGLMVec2Endian(uv);
-        for (int i = 0; i < MAX_BONE_INFLUENCE; i++) {
-            Reading::swapBasicEndian(m_BoneIDs + i, sizeof(int));
-            Reading::swapBasicEndian(m_Weights + i, sizeof(int));
-        }
-    }
-    void Vertex::swapEndian() {
-        Reading::swapGLMVec3Endian(position);
-        Reading::swapGLMVec3Endian(normal);
-        Reading::swapGLMVec2Endian(uv);
-        Reading::swapGLMVec3Endian(tangent);
-    }
-    void VertexNT::swapEndian() {
-        Reading::swapGLMVec3Endian(position);
-        Reading::swapGLMVec3Endian(normal);
-        Reading::swapGLMVec2Endian(uv);
     }
     
     /*

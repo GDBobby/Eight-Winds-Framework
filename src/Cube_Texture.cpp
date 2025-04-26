@@ -1,11 +1,11 @@
-#include "EWEngine/Graphics/Texture/Cube_Texture.h"
+#include "EWGraphics/Texture/Cube_Texture.h"
 
 
-#include "EWEngine/Graphics/Texture/Image_Manager.h"
-#include "EWEngine/Graphics/Texture/Sampler.h"
-#include "EWEngine/Graphics/TransferCommandManager.h"
+#include "EWGraphics/Texture/Image_Manager.h"
+#include "EWGraphics/Texture/Sampler.h"
+#include "EWGraphics/Vulkan/TransferCommandManager.h"
 
-#include "EWEngine/Graphics/Texture/ImageFunctions.h"
+#include "EWGraphics/Texture/ImageFunctions.h"
 
 #include <stb/stb_image.h>
 
@@ -55,7 +55,7 @@ namespace EWE {
 
             Image::CreateImageWithInfo(imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, cubeImage.image, cubeImage.memory);
 #if DEBUG_NAMING
-            DebugNaming::SetObjectName(cubeImage.image, VK_OBJECT_TYPE_IMAGE, pixelPeek[0].debugName.c_str());
+            DebugNaming::SetObjectName(reinterpret_cast<void*>(cubeImage.image), VK_OBJECT_TYPE_IMAGE, pixelPeek[0].debugName.c_str());
 #endif
 
 #if IMAGE_DEBUGGING

@@ -1,7 +1,7 @@
-#include "EWEngine/Graphics/Texture/ImageFunctions.h"
+#include "EWGraphics/Texture/ImageFunctions.h"
 
-#include "EWEngine/Systems/SyncHub.h"
-#include "EWEngine/Graphics/Texture/Sampler.h"
+#include "EWGraphics/Vulkan/SyncHub.h"
+#include "EWGraphics/Texture/Sampler.h"
 
 
 #include <stb/stb_image.h>

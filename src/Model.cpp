@@ -1,13 +1,10 @@
-#include "EWEngine/Graphics/Model/Model.h"
+#include "EWGraphics/Model/Model.h"
 
-#include "EWEngine/Data/EWE_Utils.h"
+#include "EWGraphics/Data/EWE_Utils.h"
 
 // libs
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tinyobjloader/tiny_obj_loader.h>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 // std
 #include <cassert>

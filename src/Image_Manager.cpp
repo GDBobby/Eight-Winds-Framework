@@ -1,5 +1,5 @@
-#include "EWEngine/Graphics/Texture/Image_Manager.h"
-#include "EWEngine/Graphics/Texture/UI_Texture.h"
+#include "EWGraphics/Texture/Image_Manager.h"
+#include "EWGraphics/Texture/UI_Texture.h"
 
 #ifndef TEXTURE_DIR
 #define TEXTURE_DIR "textures/"

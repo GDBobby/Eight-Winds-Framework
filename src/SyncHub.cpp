@@ -1,5 +1,5 @@
-#include "EWEngine/Systems/SyncHub.h"
-#include "EWEngine/Graphics/Texture/ImageFunctions.h"
+#include "EWGraphics/Vulkan/SyncHub.h"
+#include "EWGraphics/Texture/ImageFunctions.h"
 
 #include <future>
 #include <cassert>

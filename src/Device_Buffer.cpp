@@ -1,4 +1,4 @@
-#include "EWEngine/Graphics/Device_Buffer.h"
+#include "EWGraphics/Vulkan/Device_Buffer.h"
 
 // std
 #include <cassert>
@@ -413,7 +413,7 @@ namespace EWE {
     void EWEBuffer::SetName(std::string const& name) {
         std::string bufferName = name;
         bufferName += ":buffer";
-        DebugNaming::SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, bufferName.c_str());
+        DebugNaming::SetObjectNameRC(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, bufferName.c_str());
         std::string memoryName = name;
         memoryName += ":memory";
 #if USING_VMA

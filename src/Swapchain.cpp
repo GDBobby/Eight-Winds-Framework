@@ -1,6 +1,6 @@
-#include "EWEngine/Graphics/Swapchain.hpp"
+#include "EWGraphics/Vulkan/Swapchain.hpp"
 
-#include "EWEngine/Graphics/Texture/ImageFunctions.h"
+#include "EWGraphics/Texture/ImageFunctions.h"
 
 // std
 #include <array>

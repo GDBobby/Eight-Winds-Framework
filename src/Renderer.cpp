@@ -1,4 +1,6 @@
-#include "EWEngine/Graphics/Renderer.h"
+#include "EWGraphics/Vulkan/Renderer.h"
+
+#include <EWGraphics/Vulkan/Descriptors.h>
 
 #include <array>
 #include <stdexcept>

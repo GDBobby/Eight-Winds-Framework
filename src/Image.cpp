@@ -1,4 +1,4 @@
-#include "EWEngine/Graphics/Texture/Image.h"
+#include "EWGraphics/Texture/Image.h"
 
 #include <stb/stb_image.h>
 #include <filesystem>

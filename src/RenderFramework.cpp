@@ -1,14 +1,6 @@
-#include "EWEngine/Graphics/RenderFramework.h"
+#include "EWGraphics/RenderFramework.h"
 
-#include "EWEngine/Graphics/Device_Buffer.h"
-#include "EWEngine/Graphics/Camera.h"
-
-#define ARENA_MAP true
-#define GRASS_MAP false
-
-#define ENGINE_VERSION "1.0.0.0"
-
-#define RENDER_DEBUG false
+#include "EWGraphics/Vulkan/Device_Buffer.h"
 
 
 namespace EWE {
@@ -19,6 +11,7 @@ namespace EWE {
 		for (uint8_t i = 0; i < 4; i++) {
 			printf("\t%.3f:%.3f:%.3f:%.3f\n", theMatrix.columns[i].x, theMatrix.columns[i].y, theMatrix.columns[i].z, theMatrix.columns[i].w);
 		}
+
 	}
 
 
@@ -37,7 +30,7 @@ namespace EWE {
 #endif
 		EWEPipeline::PipelineConfigInfo::pipelineRenderingInfoStatic = eweRenderer.getPipelineInfo();
 #if EWE_DEBUG
-		printf("eight winds constructor, ENGINE_VERSION: %s \n", ENGINE_VERSION);
+		printf("eight winds constructor, ENGINE_VERSION: %s \n", EWF_VERSION);
 #endif
 
 		leafSystem = Construct<LeafSystem>({});
@@ -55,7 +48,6 @@ namespace EWE {
 #if DECONSTRUCTION_DEBUG
 		printf("beginning of RenderFramework deconstructor \n");
 #endif
-		DescriptorHandler::Cleanup();
 
 		imageManager.Cleanup();
 
@@ -107,9 +99,10 @@ namespace EWE {
 					eweRenderer.EndSwapChainRender();
 					if (eweRenderer.EndFrame()) {
 						VkExtent2D swapExtent = eweRenderer.GetExtent();
-						SettingsInfo::ScreenDimensions resizeDimensions{};
-						resizeDimensions.width = swapExtent.width;
-						resizeDimensions.height = swapExtent.height;
+
+						if (OnResizeCallback != nullptr) {
+							OnResizeCallback(swapExtent.width, swapExtent.height);
+						}
 
 						//camera.SetPerspectiveProjection(lab::DegreesToRadians(70.0f), static_cast<float>(swapExtent.width) / static_cast<float>(swapExtent.height), 0.1f, 10000.0f);
 						
@@ -118,9 +111,9 @@ namespace EWE {
 				else {
 
 					VkExtent2D swapExtent = eweRenderer.GetExtent();
-					SettingsInfo::ScreenDimensions resizeDimensions{};
-					resizeDimensions.width = swapExtent.width;
-					resizeDimensions.height = swapExtent.height;
+					if (OnResizeCallback != nullptr) {
+						OnResizeCallback(swapExtent.width, swapExtent.height);
+					}
 				}
 
 				renderThreadTime = 0.0;
