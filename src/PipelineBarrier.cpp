@@ -388,7 +388,7 @@ namespace EWE {
                 ((dstStage & VK_PIPELINE_STAGE_VERTEX_SHADER_BIT) || (dstStage & VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT))
                 ) {
 
-                //std::cout << " COMPUTE TO GRAPHICS IMAGE TRANSFER \n";
+                //printf(" COMPUTE TO GRAPHICS IMAGE TRANSFER \n");
                 imageBarriers[0].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
                 imageBarriers[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageBarriers[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT; // Access mask for compute shader writes
@@ -397,7 +397,7 @@ namespace EWE {
             else if (((srcStage & VK_PIPELINE_STAGE_VERTEX_SHADER_BIT) || (srcStage & VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)) &&
                 (dstStage & VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT))
             {
-                //std::cout << " GRAPHICS TO COMPUTE IMAGE TRANSFER \n";
+                //printf(" GRAPHICS TO COMPUTE IMAGE TRANSFER \n");
                 imageBarriers[0].oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageBarriers[0].newLayout = VK_IMAGE_LAYOUT_GENERAL;
                 imageBarriers[0].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for compute shader writes

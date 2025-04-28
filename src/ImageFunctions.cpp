@@ -4,7 +4,6 @@
 #include "EWGraphics/Texture/Sampler.h"
 
 
-#include <stb/stb_image.h>
 #include <cmath>
 
 #ifndef TEXTURE_DIR
@@ -523,7 +522,7 @@ namespace EWE {
             StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ imageSize, pixelPeek.pixels });
 #endif
             //printf("freeing pixels \n");
-            stbi_image_free(pixelPeek.pixels);
+            //stbi_image_free(pixelPeek.pixels);
 
             return stagingBuffer;
         }
@@ -544,7 +543,7 @@ namespace EWE {
 
             for (int i = 0; i < pixelPeek.size(); i++) {
                 memcpy(reinterpret_cast<void*>(memAddress), pixelPeek[i].pixels, static_cast<std::size_t>(layerSize)); //static_cast<void*> unnecessary>?
-                stbi_image_free(pixelPeek[i].pixels);
+                //stbi_image_free(pixelPeek[i].pixels);
                 memAddress += layerSize;
             }
             stagingBuffer->Unmap();

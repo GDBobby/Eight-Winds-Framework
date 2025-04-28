@@ -1,22 +1,39 @@
 #include "EWGraphics/Model/Vertex.h"
 
-namespace EWE {
-
-
-    /*
-    std::vector<VkVertexInputAttributeDescription> bobVertex::GetAttributeDescriptions() {
-        std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
-
-        attributeDescriptions.push_back({ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<uint32_t>(offsetof(bobVertex, position) });
-        attributeDescriptions.push_back({ 1, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<uint32_t>(offsetof(bobVertex, normal) });
-        attributeDescriptions.push_back({ 2, 0, VK_FORMAT_R32G32_SFLOAT, static_cast<uint32_t>(offsetof(bobVertex, uv) });
-        attributeDescriptions.push_back({ 3, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<uint32_t>(offsetof(bobVertex, tangent) });
-        attributeDescriptions.push_back({ 4, 0, VK_FORMAT_R32G32B32A32_SINT, static_cast<uint32_t>(offsetof(bobVertex, m_BoneIDs) });
-        attributeDescriptions.push_back({ 5, 0, VK_FORMAT_R32G32B32A32_SFLOAT, static_cast<uint32_t>(offsetof(bobVertex, m_Weights) });
-
-        return attributeDescriptions;
+#include "EWGraphics/Data/EWE_Utils.h"
+template <>
+struct std::hash<EWE::Vertex> {
+    size_t operator()(EWE::Vertex const& vertex) const {
+        size_t seed = 0;
+        EWE::HashCombine(seed, vertex.position, vertex.normal, vertex.uv, vertex.tangent);
+        return seed;
     }
-    */
+};
+template <>
+struct std::hash<EWE::VertexNT> {
+    size_t operator()(EWE::VertexNT const& vertex) const {
+        size_t seed = 0;
+        EWE::HashCombine(seed, vertex.position, vertex.normal, vertex.uv);
+        return seed;
+    }
+};
+template<>
+struct std::hash<EWE::SimpleVertex> {
+    size_t operator()(EWE::SimpleVertex const& vertex) const {
+        size_t seed = 0;
+        EWE::HashCombine(seed, vertex.position);
+        return seed;
+    }
+};
+template<>
+struct std::hash<EWE::GrassVertex> {
+    size_t operator()(EWE::GrassVertex const& vertex) const {
+        size_t seed = 0;
+        EWE::HashCombine(seed, vertex.position, vertex.color);
+        return seed;
+    }
+};
+namespace EWE {
 
     std::vector<VkVertexInputAttributeDescription> SimpleVertex::GetAttributeDescriptions() {
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};

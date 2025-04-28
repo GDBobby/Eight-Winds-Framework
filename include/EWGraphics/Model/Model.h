@@ -60,15 +60,6 @@ namespace EWE {
 
         EWEModel(const EWEModel&) = delete;
         EWEModel& operator=(const EWEModel&) = delete;
-#if CALL_TRACING
-        static EWEModel* CreateModelFromObj(const std::string& filepath, std::source_location = std::source_location::current());
-        static EWEModel* CreateSimpleModelFromObj(const std::string& filePath, std::source_location = std::source_location::current());
-        static EWEModel* CreateGrassModelFromObj(const std::string& filePath, std::source_location = std::source_location::current());
-#else
-        static EWEModel* CreateModelFromObj(const std::string& filepath);
-        static EWEModel* CreateSimpleModelFromObj(const std::string& filePath);
-        static EWEModel* CreateGrassModelFromObj(const std::string& filePat);
-#endif
 
         void BindAndDraw();
         void BindAndDrawNoIndex();
