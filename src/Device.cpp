@@ -2,6 +2,9 @@
 
 #include "EWGraphics/Texture/Sampler.h" //this is only for construction and deconstruction, do not call Sampler directly from device.cpp
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 
 // std headers
 #include <cstring>

@@ -30,7 +30,7 @@ namespace EWE {
 		VkImageSubresourceRange CreateSubresourceRange(ImageInfo const& imageInfo);
 
 
-		//void CreateImage(ImageInfo* imageInfo, std::string const& path, bool mipmap);
+		void CreateImage(ImageInfo* imageInfo, std::string const& path, bool mipmap);
 		void CreateImage(ImageInfo* imageInfo, PixelPeek& pixelPeek, bool mipmap);
 
 		void Destroy(ImageInfo& imageInfo);
