@@ -118,6 +118,7 @@ namespace EWE {
 
 		EWEPipeline(ShaderStringStruct const& stringStruct, PipelineConfigInfo const& configInfo);
 		EWEPipeline(VkShaderModule vertShaderModu, VkShaderModule fragShaderModu, PipelineConfigInfo const& configInfo);
+		EWEPipeline(std::array<VkShaderModule, Shader::Stage::COUNT> const& shaderModules, PipelineConfigInfo const& configInfo);
 
 		~EWEPipeline();
 
@@ -150,7 +151,7 @@ namespace EWE {
 	private:
 
 		VkPipeline graphicsPipeline;
-		VkShaderModule shaderModules[Shader::Stage::COUNT] = { {VK_NULL_HANDLE}, {VK_NULL_HANDLE}, {VK_NULL_HANDLE}, {VK_NULL_HANDLE}, {VK_NULL_HANDLE}, {VK_NULL_HANDLE}, {VK_NULL_HANDLE} };
+		std::array<VkShaderModule, Shader::Stage::COUNT> shaderModules{VK_NULL_HANDLE};
 
 		void CreateGraphicsPipeline(PipelineConfigInfo const& configInfo);
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EWGraphics/Preprocessor.h"
+#include "EWGraphics/Data/EngineDataTypes.h"
 #if USING_VMA
 #include "EWGraphics/Vulkan/vk_mem_alloc.h"
 #endif

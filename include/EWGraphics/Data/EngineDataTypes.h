@@ -86,6 +86,7 @@ namespace EWE {
 	}
 	//typedef VkDescriptorSet TextureDesc;
 
+	typedef uint64_t ImageID;
 	typedef uint64_t TransformID;
 	typedef uint32_t PipelineID;
 	typedef uint32_t SkeletonID;

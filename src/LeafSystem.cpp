@@ -7,7 +7,7 @@ namespace EWE {
 	//id also like to attempt to move this entire calculation to the GPU on compute shaders
 	LeafSystem::LeafSystem() :
 #if EWE_DEBUG
-		PipelineSystem{ Pipe::loading },
+		PipelineSystem{ 0 },
 #endif
 		ranDev{}, randomGen{ ranDev() }, ellipseRatioDistribution{ 1.f,2.f }, rotRatioDistribution{ 1.f, 4.f },
 		angularFrequencyDistribution{ lab::PI<float>, lab::GetPI(2.f)}, initTimeDistribution{0.f, 20.f},

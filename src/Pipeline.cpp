@@ -238,16 +238,16 @@ namespace EWE {
 		CreateGraphicsPipeline(configInfo);
 	}
 
-	EWEPipeline::EWEPipeline(VkShaderModule vertShaderModu, VkShaderModule fragShaderModu, const PipelineConfigInfo& configInfo)
+	EWEPipeline::EWEPipeline(std::array<VkShaderModule, Shader::Stage::COUNT> const& shaderModules, const PipelineConfigInfo& configInfo)
+	: shaderModules{shaderModules}
 #if PIPELINE_HOT_RELOAD
-		: copyConfigInfo{ configInfo },
+		, copyConfigInfo{ configInfo },
 		copyStringStruct{}
 #endif 
 	{
-		shaderModules[Shader::vert] = vertShaderModu;
-		shaderModules[Shader::frag] = fragShaderModu;
 		CreateGraphicsPipeline(configInfo);
 	}
+	
 
 	EWEPipeline::~EWEPipeline() {
 		EWE_VK(vkDestroyPipeline, VK::Object->vkDevice, graphicsPipeline, nullptr);
