@@ -4,6 +4,7 @@
 
 namespace EWE {
 
+	typedef uint64_t ImageID;
 
 	struct PixelPeek {
 		void* pixels{ nullptr };
