@@ -16,7 +16,7 @@ namespace EWE {
 #endif
 
 		PixelPeek() {}
-		PixelPeek(std::string const& path);
+		PixelPeek(void* data, std::string const& path);
 		//dont currrently care about desired channels, but maybe one day
 	};
 	struct ImageInfo {

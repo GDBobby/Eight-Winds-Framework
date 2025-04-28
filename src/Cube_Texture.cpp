@@ -7,8 +7,6 @@
 
 #include "EWGraphics/Texture/ImageFunctions.h"
 
-#include <stb/stb_image.h>
-
 namespace EWE {
 
 #ifndef SKYBOX_DIR
