@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstdint>
  //on linux, _DEBUG needs to be defined explicitly
  //_DEBUG is already defined in Visual Studio while in DEBUG mode
  //so im just replacing _DEBUG with EWE_DEBUG, supports release with debug too
+
+typedef uint64_t ImageID;
 
 #if _WIN32
     #ifdef _DEBUG

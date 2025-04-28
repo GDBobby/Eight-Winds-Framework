@@ -3,6 +3,9 @@
 
 #include "EWGraphics/Vulkan/Device.hpp"
 
+#include <LAB/Matrix.h>
+#include <LAB/Vector.h>
+
 #include <vector>
 #include <map>
 

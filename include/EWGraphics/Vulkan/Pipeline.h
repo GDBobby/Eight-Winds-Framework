@@ -3,7 +3,6 @@
 //#include "DescriptorHandler.h"
 #include "EWGraphics/Vulkan/Device.hpp"
 #include "EWGraphics/Vulkan/Descriptors.h"
-#include "EWGraphics/Data/EngineDataTypes.h"
 
 #include <map>
 
@@ -15,19 +14,6 @@ https://developer.nvidia.com/blog/vulkan-dos-donts/ */
 //#define DYNAMIC_PIPE_LAYOUT_COUNT 24 //MAX_TEXTURE_COUNT * 4 //defined in descriptorhandler.h
 
 namespace EWE {
-
-	namespace Pipe {
-		enum Pipeline_Enum : PipelineID {
-			pointLight,
-			textured,
-			skybox,
-			grid,
-			loading,
-			lightning,
-
-			ENGINE_MAX_COUNT,
-		};
-	} //namespace Pipe
 
 	namespace Pipeline_Helper_Functions {
 		void CreateShaderModule(std::string const& file_path, VkShaderModule* shaderModule);
@@ -131,9 +117,7 @@ namespace EWE {
 		};
 
 		EWEPipeline(ShaderStringStruct const& stringStruct, PipelineConfigInfo const& configInfo);
-		EWEPipeline(ShaderStringStruct const& stringStruct, MaterialFlags const flags, PipelineConfigInfo& configInfo);
 		EWEPipeline(VkShaderModule vertShaderModu, VkShaderModule fragShaderModu, PipelineConfigInfo const& configInfo);
-		EWEPipeline(uint16_t boneCount, MaterialFlags flags, PipelineConfigInfo const& configInfo);
 
 		~EWEPipeline();
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "EWGraphics/Vulkan/PipelineBarrier.h"
-#include "EWGraphics/Data/EngineDataTypes.h"
 #include "EWGraphics/Vulkan/CommandCallbacks.h"
 
 namespace EWE {

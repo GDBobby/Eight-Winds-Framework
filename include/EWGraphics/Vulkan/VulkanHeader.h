@@ -4,7 +4,6 @@
 #if USING_VMA
 #include "EWGraphics/Vulkan/vk_mem_alloc.h"
 #endif
-#include "EWGraphics/Data/EngineDataTypes.h"
 #if DEBUGGING_DEVICE_LOST
 #include "EWGraphics/Debug/VkDebugDeviceLost.h"
 #endif
@@ -27,6 +26,7 @@
 #include <tuple>
 #include <utility>
 #include <thread>
+#include <cassert>
 
 namespace EWE{
     static constexpr uint8_t MAX_FRAMES_IN_FLIGHT = 2;

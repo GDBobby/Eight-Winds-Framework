@@ -4,7 +4,9 @@
 
 namespace EWE {
 
-	typedef uint64_t ImageID;
+	#ifndef IMAGE_INVALID
+	#define IMAGE_INVALID UINT64_MAX
+	#endif
 
 	struct PixelPeek {
 		void* pixels{ nullptr };
