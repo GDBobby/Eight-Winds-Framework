@@ -384,9 +384,10 @@ namespace EWE {
 		pipelineConfig.bindingDescriptions = EWEModel::GetBindingDescriptions<VertexNT>();
 		pipelineConfig.attributeDescriptions = VertexNT::GetAttributeDescriptions();
 
-		Pipeline_Helper_Functions::CreateShaderModule("leaf.vert.spv", &vertexShaderModule);
-		Pipeline_Helper_Functions::CreateShaderModule("leaf.frag.spv", &fragmentShaderModule);
-
+		std::array<VkShaderModule, Shader::Stage::COUNT> shaders{};
+		Pipeline_Helper_Functions::CreateShaderModule("leaf.vert.spv", &shaders[Shader::vert]);
+		Pipeline_Helper_Functions::CreateShaderModule("leaf.frag.spv", &shaders[Shader::frag]);
+		
 		pipe = Construct<EWEPipeline>({ vertexShaderModule, fragmentShaderModule, pipelineConfig });
 	}
 	void LeafSystem::CreatePipeLayout() {
