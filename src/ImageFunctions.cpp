@@ -3,12 +3,8 @@
 #include "EWGraphics/Vulkan/SyncHub.h"
 #include "EWGraphics/Texture/Sampler.h"
 
-
+#include <stb/stb_image.h>
 #include <cmath>
-
-#ifndef TEXTURE_DIR
-#define TEXTURE_DIR "textures/"
-#endif
 
 
 namespace EWE {
