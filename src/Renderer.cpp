@@ -45,20 +45,24 @@ namespace EWE {
 		std::cout << "recreating swap chain" << std::endl;
 #endif
 		needToReadjust = true;
-		auto extent = mainWindow.getExtent();
+		auto extent = mainWindow.GetExtent();
+		uint64_t refreshCount = 0;
 		while (extent.width == 0 || extent.height == 0) {
-			extent = mainWindow.getExtent();
+			extent = mainWindow.GetExtent();
 			glfwWaitEvents();
+			if (refreshCount > 100) {
+				printf("failing to reacquire the window?\n");
+			}
 		}
 		EWE_VK(vkDeviceWaitIdle, VK::Object->vkDevice);
 
-
+		VkExtent2D vulkanExtent(extent.width, extent.height);
 		if (eweSwapChain == nullptr) {
-			eweSwapChain = std::make_unique<EWESwapChain>(extent, true);
+			eweSwapChain = std::make_unique<EWESwapChain>(vulkanExtent, true);
 		}
 		else {
 			std::shared_ptr<EWESwapChain> oldSwapChain = std::move(eweSwapChain);
-			eweSwapChain = std::make_unique<EWESwapChain>(extent, true, oldSwapChain);
+			eweSwapChain = std::make_unique<EWESwapChain>(vulkanExtent, true, oldSwapChain);
 
 			assert(oldSwapChain->CompareSwapFormats(*eweSwapChain.get()) && "Swap chain image(or depth) format has changed!");
 		}
@@ -106,8 +110,8 @@ namespace EWE {
 		EWE_VK(vkEndCommandBuffer, VK::Object->GetFrameBuffer());
 		//printf("after end command buffer \n");
 		VkResult vkResult = eweSwapChain->SubmitCommandBuffers(&currentImageIndex);
-		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR || mainWindow.wasWindowResized()) {
-			mainWindow.resetWindowResizedFlag();
+		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR || mainWindow.WasWindowResized()) {
+			mainWindow.ResetWindowResizedFlag();
 			RecreateSwapChain();
 			isFrameStarted = false;
 			VK::Object->frameIndex = (VK::Object->frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -127,8 +131,8 @@ namespace EWE {
 		EWE_VK(vkEndCommandBuffer, VK::Object->GetFrameBuffer());
 		//printf("after end command buffer \n");
 		VkResult vkResult = eweSwapChain->SubmitCommandBuffers(&currentImageIndex);
-		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR || mainWindow.wasWindowResized()) {
-			mainWindow.resetWindowResizedFlag();
+		if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR || mainWindow.WasWindowResized()) {
+			mainWindow.ResetWindowResizedFlag();
 			RecreateSwapChain();
 			SyncHub::GetSyncHubInstance()->WaitOnGraphicsFence();
 			isFrameStarted = false;

@@ -728,7 +728,7 @@ namespace EWE {
 #endif
         }
     }
-    void EWEDevice::CreateSurface() { window.createWindowSurface(VK::Object->instance, &VK::Object->surface, GPU_LOGGING); }
+    void EWEDevice::CreateSurface() { window.CreateWindowSurface(VK::Object->instance, &VK::Object->surface, GPU_LOGGING); }
 
     bool EWEDevice::IsDeviceSuitable(VkPhysicalDevice device) {
         bool queuesComplete = FindQueueFamilies(device, VK::Object->surface);

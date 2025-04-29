@@ -15,11 +15,11 @@ namespace EWE {
 	}
 
 
-	RenderFramework::RenderFramework(std::string windowName) :
+	RenderFramework::RenderFramework(uint32_t windowWidth, uint32_t windowHeight, std::string windowName) :
 		//first, any members not mentioned here with brackets will be initialized
 		//second, any memberss in this section will be initialized
 
-		mainWindow{ windowName },
+		mainWindow{windowWidth, windowHeight, windowName},
 		eweDevice{ mainWindow },
 		eweRenderer{ mainWindow },
 		//imguiHandler{ mainWindow.getGLFWwindow(), MAX_FRAMES_IN_FLIGHT, eweRenderer.getSwapChainRenderPass() },

@@ -22,7 +22,7 @@ namespace EWE {
 	public:
 
 		//i want to manually control all construciton here
-		RenderFramework(std::string windowName);
+		RenderFramework(uint32_t windowWidth, uint32_t windowHeight, std::string windowName);
 		//fourth will be class member construciton without brackets
 
 		~RenderFramework();
