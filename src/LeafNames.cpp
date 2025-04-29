@@ -8,7 +8,7 @@
 #if defined(_WIN32) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
-#include "LeafNames.h"
+#include "EWGraphics/resources/LeafNames.h"
 #include <string> //for std::string
 #include <iostream>
 #include <fstream>  //for ofstream
