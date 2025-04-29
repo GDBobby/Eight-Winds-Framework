@@ -12,6 +12,7 @@
 #include "stb/stb_image.h"
 
 #include <sstream>
+#include <chrono>
 
 namespace EWE {
 	//id like to move some of the random generation components to local scope on leaf generation, not sure which ones yet
@@ -53,7 +54,6 @@ namespace EWE {
 	}
 
 	void LeafSystem::InitData() {
-		assert(false); //not ready
 		LoadLeafModel();
 #if EWE_DEBUG
 		printf("after leaf mesh\n");
@@ -66,7 +66,7 @@ namespace EWE {
 #endif
 
 		for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			leafBuffer[i] = Construct<EWEBuffer>({ sizeof(lab::mat4) * LEAF_COUNT + sizeof(lab::mat4) + sizeof(lab::vec4), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT });
+			leafBuffer[i] = Construct<EWEBuffer>({ sizeof(lab::mat4) * LEAF_COUNT + sizeof(lab::mat4) + sizeof(lab::vec4), 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT });
 
 			leafBuffer[i]->Map();
 
@@ -335,8 +335,10 @@ namespace EWE {
 	void LeafSystem::LoadLeafModel() {
 		//i need to replace this with a mesh shader
 		auto& binFile = bin2cpp::getLeaf_simpleNTMeshEweFile();
-		std::string versionTracker;
-		std::istringstream bufferStream(binFile.getBuffer());
+		std::string versionTracker = "2.1.0";
+		const char* buffer = binFile.getBuffer();
+		std::string intermediateString(binFile.getBuffer(), binFile.getBuffer() + binFile.getSize());
+		std::istringstream bufferStream(intermediateString);
 		std::getline(bufferStream, versionTracker, (char)0);
 		if (bufferStream.peek() == '\n') {
 #if DEBUGGING_MESH_LOAD
@@ -383,6 +385,9 @@ namespace EWE {
 		leafImgID = ret.imgID;
 		Image::CreateImage(&ret.imgTracker->imageInfo, pixelPeek, false);
 		//printf("leaf model loaded \n");
+		//while (ret.imgTracker->imageInfo.descriptorImageInfo.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
+		//	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		//}
 	}
 
 	void LeafSystem::CreateDescriptor() {
@@ -390,8 +395,8 @@ namespace EWE {
 
 		for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			EWEDescriptorWriter descWriter{leafEDSL, DescriptorPool_Global};
-			descWriter.WriteImage(leafImgID);
 			descWriter.WriteBuffer(leafBuffer[i]->DescriptorInfo());
+			descWriter.WriteImage(leafImgID);
 			leafDescriptor[i] = descWriter.Build();
 		}
 #if DEBUG_NAMING
@@ -408,7 +413,7 @@ namespace EWE {
 		BindPipeline();
 		BindDescriptor(0, &leafDescriptor[VK::Object->frameIndex]);
 
-		leafModel->BindAndDrawInstanceNoBuffer(LEAF_COUNT);
+		leafModel->BindAndDrawInstanceNoBufferNoIndex(LEAF_COUNT);
 	}
 	void LeafSystem::CreatePipeline() {
 		CreatePipeLayout();
@@ -432,17 +437,17 @@ namespace EWE {
 		{
 			auto& vertFile = bin2cpp::getLoadingVertFile();
 			std::vector<uint32_t> shaderData{};
-			shaderData.reserve(vertFile.getSize() / 4);
+			shaderData.resize(vertFile.getSize() / 4);
 			memcpy(shaderData.data(), vertFile.getBuffer(), vertFile.getSize());
 			Pipeline_Helper_Functions::CreateShaderModule(shaderData, &shaderStruct.shaderData[Shader::Stage::vert].shader);
-	}
-	{
-		auto& fragFile = bin2cpp::getLoadingFragFile();
-		std::vector<uint32_t> shaderData{};
-		shaderData.reserve(fragFile.getSize() / 4);
-		memcpy(shaderData.data(), fragFile.getBuffer(), fragFile.getSize());
-		Pipeline_Helper_Functions::CreateShaderModule(shaderData, &shaderStruct.shaderData[Shader::Stage::vert].shader);
-	}	
+		}
+		{
+			auto& fragFile = bin2cpp::getLoadingFragFile();
+			std::vector<uint32_t> shaderData{};
+			shaderData.resize(fragFile.getSize() / 4);
+			memcpy(shaderData.data(), fragFile.getBuffer(), fragFile.getSize());
+			Pipeline_Helper_Functions::CreateShaderModule(shaderData, &shaderStruct.shaderData[Shader::Stage::frag].shader);
+		}	
 			
 		pipe = Construct<EWEPipeline>({ shaderStruct, pipelineConfig });
 	}
@@ -455,7 +460,7 @@ namespace EWE {
 
 		EWEDescriptorSetLayout::Builder dslBuilder{};
 		leafEDSL = dslBuilder
-		.AddBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+		.AddBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
 		.AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 		.Build();
 
