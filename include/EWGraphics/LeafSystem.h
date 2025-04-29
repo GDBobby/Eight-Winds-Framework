@@ -103,9 +103,6 @@ namespace EWE {
 		ImageID leafImgID{IMAGE_INVALID};
 		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> leafDescriptor{};
 
-		VkShaderModule vertexShaderModule{VK_NULL_HANDLE};
-		VkShaderModule fragmentShaderModule{VK_NULL_HANDLE};
-
 		EWEDescriptorSetLayout* leafEDSL{};
 
 		/*

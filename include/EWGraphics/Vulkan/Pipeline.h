@@ -5,6 +5,7 @@
 #include "EWGraphics/Vulkan/Descriptors.h"
 
 #include <map>
+#include <array>
 
 
 /*
@@ -39,10 +40,16 @@ namespace EWE {
 			COUNT
 		};
 	}
-	struct ShaderStringStruct {
-		std::string filepath[Shader::Stage::COUNT] = { {}, {}, {}, {}, {}, {}, {} };
+	struct ShaderTrackingStruct {
+		struct IndividualShaderTrackingStruct{
+			std::string filepath{};
+			VkShaderModule shader{VK_NULL_HANDLE};
+		};
+
+		std::array<IndividualShaderTrackingStruct, Shader::Stage::COUNT> shaderData{};
 
 		uint8_t Count() const;
+		void Validate() const;
 
 		void RenderIMGUI();
 		int16_t imguiIndex = -1;
@@ -62,9 +69,12 @@ namespace EWE {
 		VkShaderModule shader;
 	};
 
+	
+
 	class EWEPipeline {
 	public:
 
+		static VkShaderModule CheckIfShaderExist(std::string const& path);
 
 		struct PipelineConfigInfo {
 			PipelineConfigInfo() = default;
@@ -116,9 +126,7 @@ namespace EWE {
 			static VkPipelineRenderingCreateInfo* pipelineRenderingInfoStatic;
 		};
 
-		EWEPipeline(ShaderStringStruct const& stringStruct, PipelineConfigInfo const& configInfo);
-		EWEPipeline(VkShaderModule vertShaderModu, VkShaderModule fragShaderModu, PipelineConfigInfo const& configInfo);
-		EWEPipeline(std::array<VkShaderModule, Shader::Stage::COUNT> const& shaderModules, PipelineConfigInfo const& configInfo);
+		EWEPipeline(ShaderTrackingStruct const& stringStruct, PipelineConfigInfo const& configInfo);
 
 		~EWEPipeline();
 
@@ -148,10 +156,11 @@ namespace EWE {
 		int32_t imguiIndex = -1;
 #endif
 
+
 	private:
 
 		VkPipeline graphicsPipeline;
-		std::array<VkShaderModule, Shader::Stage::COUNT> shaderModules{VK_NULL_HANDLE};
+		ShaderTrackingStruct shaderModules{};
 
 		void CreateGraphicsPipeline(PipelineConfigInfo const& configInfo);
 

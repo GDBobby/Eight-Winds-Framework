@@ -28,8 +28,6 @@ namespace EWE {
 		printf("begin deconstructing leaf system \n");
 #endif
 		Deconstruct(leafModel);
-		EWE_VK(vkDestroyShaderModule, VK::Object->vkDevice, vertexShaderModule, nullptr);
-		EWE_VK(vkDestroyShaderModule, VK::Object->vkDevice, fragmentShaderModule, nullptr);
 
 		EWE_VK(vkDestroyPipelineLayout, VK::Object->vkDevice, pipeLayout, nullptr);
 
@@ -384,11 +382,15 @@ namespace EWE {
 		pipelineConfig.bindingDescriptions = EWEModel::GetBindingDescriptions<VertexNT>();
 		pipelineConfig.attributeDescriptions = VertexNT::GetAttributeDescriptions();
 
-		std::array<VkShaderModule, Shader::Stage::COUNT> shaders{};
-		Pipeline_Helper_Functions::CreateShaderModule("leaf.vert.spv", &shaders[Shader::vert]);
-		Pipeline_Helper_Functions::CreateShaderModule("leaf.frag.spv", &shaders[Shader::frag]);
+		//std::array<VkShaderModule, Shader::Stage::COUNT> shaders{};
+		//Pipeline_Helper_Functions::CreateShaderModule("leaf.vert.spv", &shaders[Shader::vert]);
+		//Pipeline_Helper_Functions::CreateShaderModule("leaf.frag.spv", &shaders[Shader::frag]);
+
+		ShaderTrackingStruct shaderStruct{};
+		shaderStruct.shaderData[Shader::Stage::vert].filepath = "shaders/leaf.vert.spv";
+		shaderStruct.shaderData[Shader::Stage::frag].filepath = "shaders/leaf.frag.spv";
 		
-		pipe = Construct<EWEPipeline>({ vertexShaderModule, fragmentShaderModule, pipelineConfig });
+		pipe = Construct<EWEPipeline>({ shaderStruct, pipelineConfig });
 	}
 	void LeafSystem::CreatePipeLayout() {
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
