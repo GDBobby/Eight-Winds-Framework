@@ -58,7 +58,7 @@ namespace EWE {
 		////this should be a graphics queue command buffer
 		void InitData();
 
-		void LoadLeafModel();
+		void LoadLeafModel(EWEModel* loadedLeafModel);
 		void LoadLeafTexture();
 		void CreateDescriptor();
 

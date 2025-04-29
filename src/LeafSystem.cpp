@@ -41,8 +41,8 @@ namespace EWE {
 	}
 
 	void LeafSystem::InitData() {
-
-		LoadLeafModel();
+		assert(false); //not ready
+		LoadLeafModel(nullptr);
 #if EWE_DEBUG
 		printf("after leaf mesh\n");
 #endif
@@ -320,17 +320,10 @@ namespace EWE {
 	}
 
 	////this should be a graphics queue command buffer
-	void LeafSystem::LoadLeafModel() {
+	void LeafSystem::LoadLeafModel(EWEModel* loadedLeafModel) {
 		//i need to replace this with a mesh shader
 
-		//printf("loading leaf model \n");
-		std::ifstream inFile("models/leaf_simpleNTMesh.ewe", std::ifstream::binary);
-		//inFile.open();
-		assert(inFile.is_open() && "failed to open leaf model");
-
-		//leafModel = EWEModel::CreateModelFromObj("models/leaf.obj");
-
-		inFile.close();
+		leafModel = loadedLeafModel;
 
 #if DEBUG_NAMING
 		leafModel->SetDebugNames("leafModel");
