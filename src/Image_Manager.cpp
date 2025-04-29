@@ -40,60 +40,6 @@ namespace EWE {
 #endif
     }
 
-    //return value <flags, textureID>
-    /*
-    void Image_Manager::ClearSceneTextures() {
-        //everythign created with a mode texture needs to be destroyed. if it persist thru modes, it needs to be a global texture
-#if EWE_DEBUG
-        //DBEUUGGIG TEXUTRE BEING CLEARED INCORRECTLY
-        //printf("clearing texutre 29 - %s \n", textureMap.at(29).textureData.path.c_str());
-        printf("clearing scene textures \n");
-#endif
-
-        for (auto& sceneID : sceneIDs) {
-
-            RemoveMaterialTexture(sceneID);
-
-
-            std::vector<ImageTracker*>& imageTrackers = textureImages.at(sceneID);
-            for (auto& imageTracker : imageTrackers) {
-#if EWE_DEBUG
-                assert(imageTracker->usedInTexture.erase(sceneID) > 0 && "descriptor is using an image that isn't used in descriptor?");
-#else
-                imageTracker->usedInTexture.erase(sceneID);
-#endif
-                if (imageTracker->usedInTexture.size() == 0) {
-                    Image::Destroy(imageTracker->imageInfo);
-                    for (auto iter = imageMap.begin(); iter != imageMap.end(); iter++) {
-                        if (iter->second == imageTracker) {
-                            
-                            imageMap.erase(iter);
-                            break;
-                        }
-                    }
-                    imageTracker->~ImageTracker();
-                    imageTrackerBucket.FreeDataChunk(imageTracker);
-
-                    textureImages.erase(sceneID);
-                }
-            }
-            //textureMap.erase(sceneID);
-        }
-        sceneIDs.clear();
-        printf("clear mode textures end \n");
-
-    }
-    void Image_Manager::RemoveMaterialTexture(TextureDesc removeID) {
-        for (auto iter = existingMaterials.begin(); iter != existingMaterials.end(); iter++) {
-            if (iter->second.texture == removeID) {
-                existingMaterials.erase(iter);
-                break;
-
-            }
-        }
-    }
-    */
-
     void Image_Manager::RemoveImage(ImageID imgID) {
         std::unique_lock<std::mutex> uniq_lock(imgMgrPtr->imageMutex);
 #if EWE_DEBUG
@@ -143,7 +89,7 @@ namespace EWE {
         return imgMgrPtr->currentImageCount++;
     }
 
-    Image_Manager::ImageReturn Image_Manager::ConstructEmptyImageTracker(std::string const& path, bool zeroUsageDelete) {
+    Image_Manager::ImageReturn Image_Manager::ConstructEmptyImageTracker(bool zeroUsageDelete) {
 
         //ImageTracker* imageTracker = reinterpret_cast<ImageTracker*>(imgMgrPtr->imageTrackerBucket.GetDataChunk());
         //new(imageTracker) ImageTracker(zeroUsageDelete);

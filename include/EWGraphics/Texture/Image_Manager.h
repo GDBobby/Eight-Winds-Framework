@@ -61,7 +61,7 @@ namespace EWE {
 			ImageTracker* imgTracker;
 		};
 		//this is specifically for CubeImage
-		static ImageReturn ConstructEmptyImageTracker(std::string const& path, bool zeroUsageDelete = false);
+		static ImageReturn ConstructEmptyImageTracker(bool zeroUsageDelete = false);
 		static ImageID ConstructImageTracker(std::string const& path, ImageInfo& imageInfo, bool zeroUsageDelete = false);
 
 		Image_Manager();

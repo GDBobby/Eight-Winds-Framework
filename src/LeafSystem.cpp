@@ -1,6 +1,17 @@
 #include "EWGraphics/LeafSystem.h"
 //#include "EWGraphics/Data/EWE_Import.h"
 #include "EWGraphics/Texture/Image_Manager.h"
+#include "EWGraphics/Texture/ImageFunctions.h"
+
+#include "EWGraphics/resources/LeafNames.h"
+#include "EWGraphics/resources/LeafMesh.h"
+#include "EWGraphics/resources/LoadingVert.h"
+#include "EWGraphics/resources/LoadingFrag.h"
+#include "EWGraphics/resources/LeafTex.h"
+
+#include "stb/stb_image.h"
+
+#include <sstream>
 
 namespace EWE {
 	//id like to move some of the random generation components to local scope on leaf generation, not sure which ones yet
@@ -27,6 +38,7 @@ namespace EWE {
 #if DECONSTRUCTION_DEBUG
 		printf("begin deconstructing leaf system \n");
 #endif
+		Image_Manager::RemoveImage(leafImgID);
 		Deconstruct(leafModel);
 
 		EWE_VK(vkDestroyPipelineLayout, VK::Object->vkDevice, pipeLayout, nullptr);
@@ -42,7 +54,7 @@ namespace EWE {
 
 	void LeafSystem::InitData() {
 		assert(false); //not ready
-		LoadLeafModel(nullptr);
+		LoadLeafModel();
 #if EWE_DEBUG
 		printf("after leaf mesh\n");
 #endif
@@ -320,22 +332,56 @@ namespace EWE {
 	}
 
 	////this should be a graphics queue command buffer
-	void LeafSystem::LoadLeafModel(EWEModel* loadedLeafModel) {
+	void LeafSystem::LoadLeafModel() {
 		//i need to replace this with a mesh shader
+		auto& binFile = bin2cpp::getLeaf_simpleNTMeshEweFile();
+		std::string versionTracker;
+		std::istringstream bufferStream(binFile.getBuffer());
+		std::getline(bufferStream, versionTracker, (char)0);
+		if (bufferStream.peek() == '\n') {
+#if DEBUGGING_MESH_LOAD
+			printf(" foudn null after version \n");
+#endif
+			bufferStream.seekg(1, std::ios::cur);
+		}
+#if DEBUGGING_MESH_LOAD
+		printf("after reading version file pos : %zu \n", static_cast<std::streamoff>(bufferStream.tellg()));
+#endif
 
-		leafModel = loadedLeafModel;
+		uint64_t size;
+		//Reading::UInt64FromFile(bufferStream, &size);
+		bufferStream.read(reinterpret_cast<char*>(&size), sizeof(uint64_t));
+#if DEBUGGING_MESH_LOAD
+		printf("after reading mesh count file pos : %zu \n", static_cast<std::streamoff>(bufferStream.tellg()));
+		printf("size of meshes : %zu \n", size);
+#endif
+		assert(size == 1);
+		MeshData<VertexNT> mesh;
+		uint64_t vertexSize;
+
+		bufferStream.read(reinterpret_cast<char*>(&vertexSize), sizeof(uint64_t));
+		mesh.vertices.resize(vertexSize);
+		bufferStream.read(reinterpret_cast<char*>(&mesh.vertices[0]), vertexSize * sizeof(VertexNT));
+ 
+		bufferStream.read(reinterpret_cast<char*>(&vertexSize), sizeof(uint64_t)); //index size, without an additional variable
+		mesh.indices.resize(vertexSize);
+		bufferStream.read(reinterpret_cast<char*>(&mesh.indices[0]), vertexSize * sizeof(uint32_t));
+
+
+		leafModel = Construct<EWEModel>({mesh.vertices.data(), mesh.vertices.size(), sizeof(mesh.vertices[0], mesh.indices)});
 
 #if DEBUG_NAMING
 		leafModel->SetDebugNames("leafModel");
 #endif
 	}
 	void LeafSystem::LoadLeafTexture() {
-		const std::string fullLeafTexturePath = "textures/leaf.jpg";
-		//Image::CreateImage(&leafImageInfo, fullLeafTexturePath, false);
 
-		leafImgID = Image_Manager::GetCreateImageID(fullLeafTexturePath, false);
-
-		const std::string leafTexturePath = "leaf.jpg";
+		PixelPeek pixelPeek{};
+		auto& file = bin2cpp::getLeafJpgFile();
+		pixelPeek.pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(file.getBuffer()), file.getSize(), &pixelPeek.width, &pixelPeek.height, &pixelPeek.channels, 4);
+		Image_Manager::ImageReturn ret = Image_Manager::ConstructEmptyImageTracker("leaf");
+		leafImgID = ret.imgID;
+		Image::CreateImage(&ret.imgTracker->imageInfo, pixelPeek, false);
 		//printf("leaf model loaded \n");
 	}
 
@@ -379,10 +425,25 @@ namespace EWE {
 		//Pipeline_Helper_Functions::CreateShaderModule("leaf.vert.spv", &shaders[Shader::vert]);
 		//Pipeline_Helper_Functions::CreateShaderModule("leaf.frag.spv", &shaders[Shader::frag]);
 
+
 		ShaderTrackingStruct shaderStruct{};
-		shaderStruct.shaderData[Shader::Stage::vert].filepath = "shaders/leaf.vert.spv";
-		shaderStruct.shaderData[Shader::Stage::frag].filepath = "shaders/leaf.frag.spv";
-		
+		shaderStruct.shaderData[Shader::Stage::vert].filepath = "leaf.vert.spv";
+		shaderStruct.shaderData[Shader::Stage::frag].filepath = "leaf.frag.spv";
+		{
+			auto& vertFile = bin2cpp::getLoadingVertFile();
+			std::vector<uint32_t> shaderData{};
+			shaderData.reserve(vertFile.getSize() / 4);
+			memcpy(shaderData.data(), vertFile.getBuffer(), vertFile.getSize());
+			Pipeline_Helper_Functions::CreateShaderModule(shaderData, &shaderStruct.shaderData[Shader::Stage::vert].shader);
+	}
+	{
+		auto& fragFile = bin2cpp::getLoadingFragFile();
+		std::vector<uint32_t> shaderData{};
+		shaderData.reserve(fragFile.getSize() / 4);
+		memcpy(shaderData.data(), fragFile.getBuffer(), fragFile.getSize());
+		Pipeline_Helper_Functions::CreateShaderModule(shaderData, &shaderStruct.shaderData[Shader::Stage::vert].shader);
+	}	
+			
 		pipe = Construct<EWEPipeline>({ shaderStruct, pipelineConfig });
 	}
 	void LeafSystem::CreatePipeLayout() {
