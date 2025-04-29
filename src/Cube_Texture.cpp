@@ -140,7 +140,7 @@ namespace EWE {
                 assert(!((i > 0) && ((pixelPeeks[i].width != pixelPeeks[i - 1].width) || (pixelPeeks[i].height != pixelPeeks[i - 1].height))) && "failed to load cube texture, bad dimensions");
             }
             
-            Image_Manager::ImageReturn cubeTracker = Image_Manager::ConstructEmptyImageTracker(texPath);
+            Image_Manager::ImageReturn cubeTracker = Image_Manager::ConstructEmptyImageTracker();
             ImageInfo& cubeImage = cubeTracker.imgTracker->imageInfo;
 
             cubeImage.descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
