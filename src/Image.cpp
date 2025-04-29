@@ -24,7 +24,7 @@ namespace EWE {
             assert(false);
         }
 #endif
-        //pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+        pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 #if EWE_DEBUG
         if(!pixels || (width * height <= 0)){
             printf("peel peek error : %s - %zu : %d\n", path.c_str(), reinterpret_cast<std::size_t>(pixels), width * height);
