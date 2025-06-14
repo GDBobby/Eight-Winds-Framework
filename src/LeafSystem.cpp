@@ -370,7 +370,7 @@ namespace EWE {
 		bufferStream.read(reinterpret_cast<char*>(&mesh.indices[0]), vertexSize * sizeof(uint32_t));
 
 
-		leafModel = Construct<EWEModel>({mesh.vertices.data(), mesh.vertices.size(), sizeof(mesh.vertices[0], mesh.indices)});
+		leafModel = Construct<EWEModel>({mesh.vertices.data(), mesh.vertices.size(), sizeof(mesh.vertices[0]), mesh.indices});
 
 #if DEBUG_NAMING
 		leafModel->SetDebugNames("leafModel");

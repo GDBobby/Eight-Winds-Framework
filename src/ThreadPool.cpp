@@ -6,16 +6,29 @@
 
 #if THREAD_NAMING
 #if WIN32
+
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-void NameThread(const char* name) {
-    size_t len = std::mbstowcs(nullptr, name, 0);
-    if (len == static_cast<size_t>(-1)) {
-        throw std::runtime_error("Conversion failed");
+std::wstring ConvertUtf8ToWstring(const char* utf8Str) {
+    if (!utf8Str) return L"";
+
+    int wideLen = MultiByteToWideChar(CP_UTF8, 0, utf8Str, -1, nullptr, 0);
+    if (wideLen == 0) {
+        throw std::runtime_error("MultiByteToWideChar failed");
     }
 
-    std::wstring wstr(len, L'\0');
-    std::mbstowcs(&wstr[0], name, len);
-    SetThreadDescription(GetCurrentThread(), wstr.c_str());
+    std::wstring wideStr(wideLen, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, utf8Str, -1, &wideStr[0], wideLen);
+
+    // Remove null terminator for consistency
+    wideStr.pop_back();
+
+    return wideStr;
+}
+
+void NameThread(const char* name) {
+    std::wstring wideString = ConvertUtf8ToWstring(name);
+    SetThreadDescription(GetCurrentThread(), wideString.c_str());
 }
 #else
 #include <pthread.h>

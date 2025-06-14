@@ -2,6 +2,7 @@
 
 #if CALL_TRACING
 #if _WIN32
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <DbgHelp.h>
 #pragma comment(lib, "Dbghelp.lib")
@@ -11,6 +12,9 @@
 
 #if USING_VMA
 #define VMA_IMPLEMENTATION
+#if WIN32
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include "EWGraphics/Vulkan/vk_mem_alloc.h"
 #endif
 #if CALL_TRACING

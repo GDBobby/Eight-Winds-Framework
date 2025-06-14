@@ -3,6 +3,9 @@
 #include "EWGraphics/Preprocessor.h"
 #include "EWGraphics/Data/EngineDataTypes.h"
 #if USING_VMA
+#if WIN32
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include "EWGraphics/Vulkan/vk_mem_alloc.h"
 #endif
 #if DEBUGGING_DEVICE_LOST

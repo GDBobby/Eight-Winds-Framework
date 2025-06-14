@@ -1,0 +1,22 @@
+# Blender 3.5.1 MTL File: 'leaf.blend'
+# www.blender.org
+
+newmtl 01_-_Default
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd -s 0.555556 1 1 C:/Users/gigag/Downloads/uploads_files_748162_lefs/high_res_leaf_texture_by_hhh316.jpg
+
+newmtl 07_-_Default
+Ns 171.483734
+Ka 1.000000 1.000000 1.000000
+Kd 0.415686 0.509804 0.007843
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
