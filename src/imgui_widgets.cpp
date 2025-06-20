@@ -38,9 +38,9 @@ Index of this file:
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 
-#include <EWEngine/imgui/imgui.h>
+#include <EWGraphics/imgui/imgui.h>
 #ifndef IMGUI_DISABLE
-#include <EWEngine/imgui/imgui_internal.h>
+#include <EWGraphics/imgui/imgui_internal.h>
 
 // System includes
 #include <stdint.h>     // intptr_t
@@ -3824,7 +3824,7 @@ static bool STB_TEXTEDIT_INSERTCHARS(ImGuiInputTextState* obj, int pos, const Im
 
 #define IMSTB_TEXTEDIT_IMPLEMENTATION
 #define IMSTB_TEXTEDIT_memmove memmove
-#include <EWEngine/imgui/imstb_textedit.h>
+#include <EWGraphics/imgui/imstb_textedit.h>
 
 // stb_textedit internally allows for a single undo record to do addition and deletion, but somehow, calling
 // the stb_textedit_paste() function creates two separate records, so we perform it manually. (FIXME: Report to nothings/stb?)

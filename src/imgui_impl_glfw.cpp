@@ -1,6 +1,6 @@
-#include <EWEngine/imgui/imgui.h>
+#include <EWGraphics/imgui/imgui.h>
 #ifndef IMGUI_DISABLE
-#include <EWEngine/imgui/backends/imgui_impl_glfw.h>
+#include <EWGraphics/imgui/backends/imgui_impl_glfw.h>
 
 // Clang warnings with -Weverything
 #if defined(__clang__)

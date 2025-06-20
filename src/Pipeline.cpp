@@ -225,7 +225,7 @@ namespace EWE {
 				shaderMapMutex.unlock();
 			}
 #if PIPELINE_HOT_RELOAD
-			EWE_VK(vkDestroyShaderModule, VK::Object->vkDevice, shader, nullptr);
+			//EWE_VK(vkDestroyShaderModule, VK::Object->vkDevice, shaderStruct.shader, nullptr);
 			return;
 #endif
 			EWE_UNREACHABLE;
@@ -238,8 +238,7 @@ namespace EWE {
 	EWEPipeline::EWEPipeline(ShaderTrackingStruct const& shaderStruct, PipelineConfigInfo const& configInfo) :
 		shaderModules{shaderStruct}
 #if PIPELINE_HOT_RELOAD
-		: copyConfigInfo{configInfo},
-		copyStringStruct{stringStruct}
+		,copyConfigInfo{configInfo}
 #endif
 	{
 		shaderStruct.Validate();
@@ -557,23 +556,24 @@ namespace EWE {
 #if PIPELINE_HOT_RELOAD
 	void EWEPipeline::ReloadShaderModules() {
 		for (uint8_t i = 0; i < Shader::Stage::COUNT; i++) {
-			if (copyStringStruct.filepath[i].size() > 0) {
-				auto modFind = shaderModuleMap.find(copyStringStruct.filepath[i]);
+			if (shaderModules.shaderData[i].filepath.size() > 0) {
+				auto modFind = shaderModuleMap.find(shaderModules.shaderData[i].filepath);
 				if (modFind == shaderModuleMap.end()) {
 					assert(false && "this should be supported");
 				}
 				else {
 					shaderMapMutex.lock();
-					const auto shaderCode = Pipeline_Helper_Functions::ReadFile(copyStringStruct.filepath[i]);
-					Pipeline_Helper_Functions::CreateShaderModule(shaderCode, &shaderModules[i]);
-					modFind->second = shaderModules[i];
+					const auto shaderCode = Pipeline_Helper_Functions::ReadFile(shaderModules.shaderData[i].filepath);
+					Pipeline_Helper_Functions::CreateShaderModule(shaderCode, &shaderModules.shaderData[i].shader);
+					//ReplaceShader(modFind->second.shader, shaderModules.shaderData[i].shader);
+					modFind->second.shader = shaderModules.shaderData[i].shader;
 					shaderMapMutex.unlock();
 				}
 			}
-			else if (shaderModules[i] != VK_NULL_HANDLE) {
+			else if (shaderModules.shaderData[i].shader != VK_NULL_HANDLE) {
 				printf("this is 100 percent a gpu memory leak. im just too lazy to fix it rn\n");
-				shaderModules[i] = VK_NULL_HANDLE;
-				//DestroyShader(shaderModules[i]);
+				//DestroyShader(shaderModules.shaderData[i]);
+				shaderModules.shaderData[i].shader = VK_NULL_HANDLE;
 			}
 		}
 
@@ -602,7 +602,7 @@ namespace EWE {
 		//std::this_thread::sleep_for(std::chrono::seconds(3));
 	}
 
-	void ShaderStringStruct::RenderIMGUI() {
+	void ShaderTrackingStruct::RenderIMGUI() {
 		static int currentImguiIndex = 0;
 		if (imguiIndex < 0) {
 			imguiIndex = currentImguiIndex;
@@ -628,7 +628,7 @@ namespace EWE {
 
 		if (ImGui::TreeNode(treeName.c_str())) {
 			for (uint8_t i = 0; i < Shader::Stage::COUNT; i++) {
-				ImGui::InputText(magic_enum::enum_name(static_cast<Shader::Stage>(i)).data(), filepath[i].data(), filepath[i].capacity() + 1, ImGuiInputTextFlags_CallbackResize, str_callback, &filepath[i]);
+				ImGui::InputText(magic_enum::enum_name(static_cast<Shader::Stage>(i)).data(), shaderData[i].filepath.data(), shaderData[i].filepath.capacity() + 1, ImGuiInputTextFlags_CallbackResize, str_callback, &shaderData[i].filepath);
 			}
 
 			ImGui::TreePop();

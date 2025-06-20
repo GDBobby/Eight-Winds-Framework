@@ -71,8 +71,7 @@ namespace EWE {
             logFile.close();
 #endif
 
-
-            //assert(false && "validation layer error");
+            assert(false && "validation layer error");
             break;
         }
         default:

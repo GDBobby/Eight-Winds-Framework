@@ -1,10 +1,10 @@
 #pragma once
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include <EWEngine/imgui/imgui.h>
-#include <EWEngine/imgui/imgui_internal.h>
+#include <EWGraphics/imgui/imgui.h>
+#include <EWGraphics/imgui/imgui_internal.h>
 
-#include "EWEngine/imgui/imnodes.h"
+#include "EWGraphics/imgui/imnodes.h"
 
 #include <limits.h>
 

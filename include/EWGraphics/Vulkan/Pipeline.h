@@ -149,18 +149,22 @@ namespace EWE {
 		//void RecompileShaderModules(ShaderStringStruct const& stringStruct);
 		//void ReloadConfig(PipelineConfigInfo const& configInfo);
 
-		ShaderStringStruct copyStringStruct;
 		PipelineConfigInfo copyConfigInfo;
 		uint16_t framesSinceSwap = 0;
 		VkPipeline stalePipeline = VK_NULL_HANDLE; //going to let it tick for MAX_FRAMES_IN_FLIGHT + 1 then delete it
 		int32_t imguiIndex = -1;
+		ShaderTrackingStruct shaderModules{};
+
+	private:
+#else
+	private:
+		ShaderTrackingStruct shaderModules{};
+
 #endif
 
 
-	private:
 
 		VkPipeline graphicsPipeline;
-		ShaderTrackingStruct shaderModules{};
 
 		void CreateGraphicsPipeline(PipelineConfigInfo const& configInfo);
 

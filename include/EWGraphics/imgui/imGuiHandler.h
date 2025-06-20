@@ -1,11 +1,11 @@
 
 #pragma once
 
-#include "EWEngine/imgui/imgui.h"
-#include "EWEngine/imgui/backends/imgui_impl_glfw.h"
-#include "EWEngine/imgui/backends/imgui_impl_vulkan.h"
-#include "EWEngine/imgui/implot.h"
-#include "EWEngine/imgui/imnodes.h"
+#include "EWGraphics/imgui/imgui.h"
+#include "EWGraphics/imgui/backends/imgui_impl_glfw.h"
+#include "EWGraphics/imgui/backends/imgui_impl_vulkan.h"
+#include "EWGraphics/imgui/implot.h"
+#include "EWGraphics/imgui/imnodes.h"
 
 #include "EWGraphics/Data/EngineDataTypes.h"
 #include "EWGraphics/Vulkan/Device.hpp"

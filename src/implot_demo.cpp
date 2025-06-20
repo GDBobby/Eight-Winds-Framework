@@ -27,7 +27,7 @@
 #define IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
 #endif
 
-#include "EWEngine/imgui/implot.h"
+#include "EWGraphics/imgui/implot.h"
 #ifndef IMGUI_DISABLE
 #include <math.h>
 #include <stdio.h>
@@ -2402,7 +2402,7 @@ void StyleSeaborn() {
 // into the public API and expose the necessary building blocks to fully support
 // custom plotters. For now, proceed at your own risk!
 
-#include "EWEngine/imgui/implot_internal.h"
+#include "EWGraphics/imgui/implot_internal.h"
 
 namespace MyImPlot {
 

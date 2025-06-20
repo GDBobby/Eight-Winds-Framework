@@ -52,7 +52,7 @@ namespace EWE {
         delete singleton;
     }
 
-    ThreadPool::ThreadPool(std::size_t numThreads) : threadSpecificTasks{}, threadMutexesBase{numThreads}, threadSpecificMutex{} {
+    ThreadPool::ThreadPool(std::size_t numThreads) : threadSpecificTasks{}, threadMutexesBase{ numThreads }, threadSpecificMutex{} {
 
         threadSpecificTasks.reserve(numThreads);
         threadSpecificMutex.reserve(numThreads);
@@ -72,7 +72,7 @@ namespace EWE {
                     threadSpecificMutex.Add(myThreadID, localThreadMutex);
 
                     while (true) {
-                        while(localThreadTasks->size() != 0){
+                        while (localThreadTasks->size() != 0) {
                             localThreadMutex->lock();
                             auto func = localThreadTasks->front();
                             localThreadTasks->pop();

@@ -58,7 +58,7 @@
 #define THREAD_NAMING (true && EWE_DEBUG)
 #define DEBUGGING_MATERIAL_NORMALS (false && EWE_DEBUG)
 
-#define PIPELINE_HOT_RELOAD false
+#define PIPELINE_HOT_RELOAD true
 
 #if EWE_DEBUG
     #define EWE_UNREACHABLE assert(false)

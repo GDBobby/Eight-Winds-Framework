@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stddef.h>
-#include <EWEngine/imgui/imgui.h>
+#include <EWGraphics/imgui/imgui.h>
 
 #ifdef IMNODES_USER_CONFIG
 #include IMNODES_USER_CONFIG

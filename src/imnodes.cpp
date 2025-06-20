@@ -6,7 +6,7 @@
 // [SECTION] render helpers
 // [SECTION] API implementation
 
-#include "EWEngine/imgui/imnodes_internal.h"
+#include "EWGraphics/imgui/imnodes_internal.h"
 
 // Check minimum ImGui version
 #define MINIMUM_COMPATIBLE_IMGUI_VERSION 17400

@@ -45,7 +45,7 @@
 // [SECTION] Obsolete API
 
 #pragma once
-#include "EWEngine/imgui/imgui.h"
+#include "EWGraphics/imgui/imgui.h"
 #ifndef IMGUI_DISABLE
 
 //-----------------------------------------------------------------------------

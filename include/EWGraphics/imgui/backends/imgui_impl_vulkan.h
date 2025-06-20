@@ -28,7 +28,7 @@
 
 #pragma once
 #ifndef IMGUI_DISABLE
-#include <EWEngine/imgui/imgui.h>      // IMGUI_IMPL_API
+#include <EWGraphics/imgui/imgui.h>      // IMGUI_IMPL_API
 #include <EWGraphics/Vulkan/Descriptors.h>
 
 // [Configuration] in order to use a custom Vulkan function loader:

@@ -51,9 +51,9 @@ CODE
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 
-#include <EWEngine/imgui/imgui.h>
+#include <EWGraphics/imgui/imgui.h>
 #ifndef IMGUI_DISABLE
-#include <EWEngine/imgui/imgui_internal.h>
+#include <EWGraphics/imgui/imgui_internal.h>
 
 // System includes
 #include <stdio.h>      // vsnprintf, sscanf, printf

@@ -45,7 +45,7 @@ namespace EWE {
                 auto& empRet = matPaths.emplace_back(TEXTURE_DIR);
                 empRet += texPath + matImgTypes[i][j];
 
-                printf("smart material path : %s \n", matPaths.back().c_str());
+                //printf("smart material path : %s \n", matPaths.back().c_str());
 
                 if (std::filesystem::exists(matPaths.back() + ".png")) {
                     empRet += ".png";

@@ -106,7 +106,7 @@ namespace EWE {
         ImageTracker* imageTracker = Construct<ImageTracker>({});
         ImageInfo* arrayImageInfo = &imageTracker->imageInfo;
 #if EWE_DEBUG
-        printf("before ui image\n");
+        //printf("before ui image\n");
 #endif
 
         if (VK::Object->CheckMainThread()) {
@@ -122,7 +122,7 @@ namespace EWE {
         arrayImageInfo->height = pixelPeeks[0].height;
         UI_Texture::CreateUIImage(*arrayImageInfo, pixelPeeks, mipmapping);
 #if EWE_DEBUG
-        printf("after ui image\n");
+        //printf("after ui image\n");
 #endif
         UI_Texture::CreateUIImageView(*arrayImageInfo);
         UI_Texture::CreateUISampler(*arrayImageInfo);

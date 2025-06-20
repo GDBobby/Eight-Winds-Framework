@@ -155,7 +155,7 @@ namespace EWE {
 						extension += std::to_string(pipeIndex);
 						
 					}
-					pipe->pipe->copyStringStruct.RenderIMGUI();
+					pipe->pipe->shaderModules.RenderIMGUI();
 					pipe->pipe->copyConfigInfo.RenderIMGUI();
 					ImGui::TreePop();
 				}

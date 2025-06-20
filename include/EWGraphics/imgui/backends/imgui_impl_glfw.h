@@ -18,7 +18,7 @@
 // - Introduction, links and more at the top of imgui.cpp
 
 #pragma once
-#include <EWEngine/imgui/imgui.h>
+#include <EWGraphics/imgui/imgui.h>
 #ifndef IMGUI_DISABLE
 
 struct GLFWwindow;
