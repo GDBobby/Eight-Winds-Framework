@@ -11,16 +11,13 @@
 namespace EWE {
 
     // *************** Descriptor Set Layout Builder *********************
-
     EWEDescriptorSetLayout::Builder& EWEDescriptorSetLayout::Builder::AddBinding(VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t count) {
         VkDescriptorSetLayoutBinding layoutBinding{};
-        layoutBinding.binding = currentBindingCount;
+        layoutBinding.binding = bindings.size();
         layoutBinding.descriptorType = descriptorType;
         layoutBinding.descriptorCount = count;
         layoutBinding.stageFlags = stageFlags;
         bindings.push_back(layoutBinding);
-
-        currentBindingCount++;
         return *this;
     }
     EWEDescriptorSetLayout::Builder& EWEDescriptorSetLayout::Builder::AddGlobalBindingForCompute() {
@@ -30,13 +27,12 @@ namespace EWE {
         globalBindings.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
         globalBindings.descriptorCount = 1;
         bindings.push_back(globalBindings);
-        currentBindingCount = 1;
         return *this;
     }
 
     EWEDescriptorSetLayout::Builder& EWEDescriptorSetLayout::Builder::AddGlobalBindings() {
 #if EWE_DEBUG
-        assert(currentBindingCount == 0);
+        assert(bindings.size() == 0);
 #endif
         VkDescriptorSetLayoutBinding globalBindings{};
         globalBindings.binding = 0;
@@ -49,8 +45,6 @@ namespace EWE {
         globalBindings.binding = 1;
         bindings.push_back(globalBindings);
 
-        currentBindingCount = 2;
-
         return *this;
     }
 #if EWE_DEBUG
@@ -62,6 +56,10 @@ namespace EWE {
         return Construct<EWEDescriptorSetLayout>({ bindings });
     }
 #endif
+    EWEDescriptorSetLayout EWEDescriptorSetLayout::Builder::BuildInPlace(){
+        return EWEDescriptorSetLayout(bindings);
+    }
+
     // *************** Descriptor Set Layout *********************
 
     EWEDescriptorSetLayout::EWEDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding>& bindings)
@@ -87,6 +85,34 @@ namespace EWE {
         //that all come before deconstruction time
 #endif
     }
+    ShaderDescriptorSets::Builder::ShaderDescriptorSets::Builder::Builder(){
+        assert(bindings.size() == 0);
+        bindings.push_back(std::vector<VkDescriptorSetLayoutBinding>{});
+    }
+
+    ShaderDescriptorSets::Builder& ShaderDescriptorSets::Builder::AddBinding(){
+        VkDescriptorSetLayoutBinding layoutBinding{};
+        layoutBinding.binding = bindings.back().size();
+        layoutBinding.descriptorType = descriptorType;
+        layoutBinding.descriptorCount = count;
+        layoutBinding.stageFlags = stageFlags;
+        bindings.back().push_back(layoutBinding);
+        return *this;
+    }
+    ShaderDescriptorSets::Builder& ShaderDescriptorSets::Builder::BeginSet(){
+        bindings.push_back(std::vector<VkDescriptorSetLayoutBinding>{});
+    }
+    ShaderDescriptorSets* ShaderDescriptorSets::Builder::Build(){
+        return Construct<ShaderDescriptorSets>({bindings});
+    }
+    ShaderDescriptorSets(std::vector<std::vector<VkDescriptorSetLayoutBinding>> const& bindings){
+        descriptorSetLayouts.reserve(bindings.size());
+        for(auto const& set : bindings){
+            descriptorSetLayouts.emplace_back(set);
+        }
+    }
+
+
 
     // *************** Descriptor Pool Builder *********************
 

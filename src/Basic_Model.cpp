@@ -1,5 +1,7 @@
 #include "EWGraphics/Model/Basic_Model.h"
 
+#include <cmath>
+
 namespace EWE {
     namespace Basic_Model {
 

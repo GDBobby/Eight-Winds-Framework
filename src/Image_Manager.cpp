@@ -107,6 +107,7 @@ namespace EWE {
         ImageInfo* arrayImageInfo = &imageTracker->imageInfo;
 #if EWE_DEBUG
         //printf("before ui image\n");
+        arrayImageInfo->imageName = pixelPeeks[0].debugName;
 #endif
 
         if (VK::Object->CheckMainThread()) {

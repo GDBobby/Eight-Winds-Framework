@@ -12,8 +12,8 @@
 namespace EWE {
     namespace UI_Texture {
 
-        //namespace internal {
         void CreateUIImage(ImageInfo& uiImageInfo, std::vector<PixelPeek> const& pixelPeek, bool mipmapping) {
+            printf("beginning creation of ui image - %s\n", uiImageInfo.imageName.c_str());
             std::size_t layerSize = pixelPeek[0].width * pixelPeek[0].height * 4;
             uiImageInfo.arrayLayers = static_cast<uint16_t>(pixelPeek.size());
             const VkDeviceSize imageSize = layerSize * uiImageInfo.arrayLayers;
@@ -24,7 +24,6 @@ namespace EWE {
                 assert(assertionSize == (pixelPeek[i].width * pixelPeek[i].height * 4) && "size is not equal");
             }
 #endif
-
             void* data;
 #if USING_VMA
             StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ imageSize });
@@ -34,15 +33,21 @@ namespace EWE {
             stagingBuffer->Map(data);
 #endif
             uint64_t memAddress = reinterpret_cast<uint64_t>(data);
+            uint64_t memOffset = 0;
             if (MIPMAP_ENABLED && mipmapping) {
                 uiImageInfo.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(pixelPeek[0].width, pixelPeek[0].height))) + 1);
             }
 
             for (uint16_t i = 0; i < pixelPeek.size(); i++) {
-                assert((memAddress + layerSize) <= (reinterpret_cast<uint64_t>(data) + stagingBuffer->bufferSize));
-                memcpy(reinterpret_cast<void*>(memAddress), pixelPeek[i].pixels, layerSize); //static_cast<void*> unnecessary>?
+#if EWE_DEBUG
+                if(stagingBuffer->bufferSize < (memOffset + layerSize)){
+                    printf("incorrect memory usage in ui texture - (%zu) - (%zu) - (%zu) - (%zu)\n", stagingBuffer->bufferSize, memOffset, layerSize, imageSize);
+                }
+#endif
+                assert((memOffset + layerSize) <= stagingBuffer->bufferSize);
+                memcpy(reinterpret_cast<void*>(memAddress + memOffset), pixelPeek[i].pixels, layerSize); //static_cast<void*> unnecessary>?
                 stbi_image_free(pixelPeek[i].pixels);
-                memAddress += layerSize;
+                memOffset += layerSize;
             }
 #if USING_VMA
             vmaUnmapMemory(VK::Object->vmaAllocator, stagingBuffer->vmaAlloc);
@@ -82,6 +87,8 @@ namespace EWE {
             uiImageInfo.imageName = pixelPeek[0].debugName;
 #endif
             Image::CreateImageCommands(uiImageInfo, imageCreateInfo, stagingBuffer, mipmapping);
+            
+            printf("end of ui image creation - %s\n", uiImageInfo.imageName.c_str());
         }
 
         void CreateUIImageView(ImageInfo& uiImageInfo) {

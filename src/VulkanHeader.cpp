@@ -110,6 +110,8 @@ namespace EWE {
             VMA_ALLOCATION_CREATE_MAPPED_BIT;
         EWE_VK(vmaCreateBuffer, VK::Object->vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer, &vmaAlloc, &vmaAllocInfo);
 
+        bufferSize = size;
+
         Stage(data, size);
     }
     StagingBuffer::StagingBuffer(VkDeviceSize size) {
@@ -124,6 +126,9 @@ namespace EWE {
         vmaAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         vmaAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
             VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        
+        bufferSize = size;
+
         EWE_VK(vmaCreateBuffer, VK::Object->vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer, &vmaAlloc, &vmaAllocInfo);
     }
 #else
@@ -271,6 +276,8 @@ namespace EWE {
             }
 
             return "<unknown symbol>";
+#else
+            return "NLOP"; //not supported in linux YET
 #endif
         }
     }

@@ -17,19 +17,13 @@ namespace EWE {
         : windowExtent{ extent }, syncHub{SyncHub::GetSyncHubInstance()} {
 
         Init(fullscreen);
-        //deviceRef.receiveImageInFlightFences(&imagesInFlight);
     }
     EWESwapChain::EWESwapChain(VkExtent2D extent, bool fullscreen, std::shared_ptr<EWESwapChain> previous)
         : windowExtent{ extent }, oldSwapChain{ previous }, syncHub{ SyncHub::GetSyncHubInstance() } {
         Init(fullscreen);
         oldSwapChain.reset();
-        //deviceRef.receiveImageInFlightFences(&imagesInFlight);
     }
     void EWESwapChain::Init(bool fullScreen) {
-       // logFile.open("log.log");
-       // logFile << "initializing swap chain \n";
-        //printf("init swap chain \n");
-
         /*
         //structures before creating swapchain, need it in swapchaincreateinfo.pNext
         //the example also has VkPhysicalDeviceSurfaceInfo2KHR but that may be HDR and unrelated
@@ -45,11 +39,8 @@ namespace EWE {
         CreateSwapChain();
         CreateImageViews();
 
-        //createRenderPass();
         CreateDepthResources();
         InitDynamicStruct();
-        //createFramebuffers();
-        //createSyncObjects();
 
         //acquire fullscreen here
         //acquireFullscreen();
@@ -62,9 +53,11 @@ namespace EWE {
         pipeline_rendering_create_info.depthAttachmentFormat = swapChainDepthFormat;
     }
 
+    VkDescriptorSet EWESwapChain::GetColorDescriptor(uint8_t index = VK::Object->frameIndex) const {
+        return swapChainImageDescriptors[index];
+    }
+
     EWESwapChain::~EWESwapChain() {
-        //device.removeImageInFlightFences(&imagesInFlight);
-        //logFile.close();
         for (auto imageView : swapChainImageViews) {
             EWE_VK(vkDestroyImageView, VK::Object->vkDevice, imageView, nullptr);
         }
@@ -84,19 +77,6 @@ namespace EWE {
             EWE_VK(vkFreeMemory, VK::Object->vkDevice, depthImageMemorys[i], nullptr);
 #endif
         }
-        /*
-        for (auto framebuffer : swapChainFramebuffers) {
-            vkDestroyFramebuffer(EWEDevice::GetVkDevice(), framebuffer, nullptr);
-        }
-
-        vkDestroyRenderPass(EWEDevice::GetVkDevice(), renderPass, nullptr);
-        */
-        // cleanup synchronization objects
-        //for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        //    vkDestroySemaphore(EWEDevice::GetVkDevice(), renderFinishedSemaphores[i], nullptr);
-        //    vkDestroySemaphore(EWEDevice::GetVkDevice(), imageAvailableSemaphores[i], nullptr);
-        //    vkDestroyFence(EWEDevice::GetVkDevice(), inFlightFences[i], nullptr);
-        //}
     }
     bool EWESwapChain::AcquireNextImage(uint32_t* imageIndex) {
        // printf("pre-wait for ANI inflightfences \n");
@@ -172,18 +152,16 @@ namespace EWE {
         
         syncHub->SetImageCount(imageCount);
 
+        VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
+        swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swapChainCreateInfo.surface = VK::Object->surface;
 
-        VkSwapchainCreateInfoKHR createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        //createInfo.pNext = &surfaceFullScreenExclusiveInfoEXT;
-        createInfo.surface = VK::Object->surface;
-
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = surfaceFormat.format;
-        createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        swapChainCreateInfo.minImageCount = imageCount;
+        swapChainCreateInfo.imageFormat = surfaceFormat.format;
+        swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+        swapChainCreateInfo.imageExtent = extent;
+        swapChainCreateInfo.imageArrayLayers = 1;
+        swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 
         uint32_t queueData[] = { static_cast<uint32_t>(VK::Object->queueIndex[Queue::graphics]), static_cast<uint32_t>(VK::Object->queueIndex[Queue::present])};
 
@@ -198,21 +176,21 @@ namespace EWE {
         }
         */
         const bool differentFamilies = (queueData[0] != queueData[1]);
-        createInfo.imageSharingMode = (VkSharingMode)differentFamilies; //1 is concurrent, 0 is exclusive
-        createInfo.queueFamilyIndexCount = 1 + differentFamilies;
+        swapChainCreateInfo.imageSharingMode = (VkSharingMode)differentFamilies; //1 is concurrent, 0 is exclusive
+        swapChainCreateInfo.queueFamilyIndexCount = 1 + differentFamilies;
 
-        createInfo.pQueueFamilyIndices = &queueData[0];  //if exclusive, only the first element is read from the array
+        swapChainCreateInfo.pQueueFamilyIndices = &queueData[0];  //if exclusive, only the first element is read from the array
 
-        createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        swapChainCreateInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+        swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-        createInfo.presentMode = presentMode;
-        createInfo.clipped = VK_TRUE;
+        swapChainCreateInfo.presentMode = presentMode;
+        swapChainCreateInfo.clipped = VK_TRUE;
 
-        createInfo.oldSwapchain = oldSwapChain == nullptr ? VK_NULL_HANDLE : oldSwapChain->swapChain;
+        swapChainCreateInfo.oldSwapchain = oldSwapChain == nullptr ? VK_NULL_HANDLE : oldSwapChain->swapChain;
 
         //logFile << "values initialized, vkcreateswapchain now \n";
-        EWE_VK(vkCreateSwapchainKHR, VK::Object->vkDevice, &createInfo, nullptr, &swapChain);
+        EWE_VK(vkCreateSwapchainKHR, VK::Object->vkDevice, &swapChainCreateInfo, nullptr, &swapChain);
         //logFile << "afterr vkswapchain \n";
         // we only specified a minimum number of images in the swap chain, so the implementation is
         // allowed to create a swap chain with more. That's why we'll first query the final number of
@@ -227,7 +205,7 @@ namespace EWE {
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;
-     }
+    }
 
     void EWESwapChain::CreateImageViews() {
         swapChainImageViews.resize(swapChainImages.size());
@@ -245,43 +223,19 @@ namespace EWE {
 
             EWE_VK(vkCreateImageView, VK::Object->vkDevice, &viewInfo, nullptr, &swapChainImageViews[i]);
         }
+
+        swapChainImageDescriptors.resize(swapChainImages.size());
+        for(std::size_t i = 0; i < swapChainImageDescriptors.size(); i++){
+            vkCreateDesc
+        }
     }
 
-    
     void EWESwapChain::InitDynamicStruct() {
-
         dynamicStructs.reserve(swapChainImages.size());
         for (uint8_t i = 0; i < swapChainImages.size(); i++) {
 			dynamicStructs.emplace_back(swapChainImageViews[i], depthImageViews[i], swapChainExtent.width, swapChainExtent.height);
 		}
     }
-    
-    /*
-    void EWESwapChain::createFramebuffers() {
-        swapChainFramebuffers.resize(imageCount());
-        for (size_t i = 0; i < imageCount(); i++) {
-            std::array<VkImageView, 2> attachments = {swapChainImageViews[i], depthImageViews[i]};
-
-            VkExtent2D swapChainExtent = getSwapChainExtent();
-            VkFramebufferCreateInfo framebufferInfo = {};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = renderPass;
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = swapChainExtent.width;
-            framebufferInfo.height = swapChainExtent.height;
-            framebufferInfo.layers = 1;
-
-            if (vkCreateFramebuffer(
-                    EWEDevice::GetVkDevice(),
-                    &framebufferInfo,
-                    nullptr,
-                    &swapChainFramebuffers[i]) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
-        }
-    }
-    */
 
     void EWESwapChain::CreateDepthResources() {
         VkFormat depthFormat = FindDepthFormat();
@@ -316,7 +270,6 @@ namespace EWE {
                 depthImages[i],
                 depthImageMemorys[i]
             );
-
 
             VkImageViewCreateInfo viewInfo{};
             viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -369,24 +322,12 @@ namespace EWE {
                 std::cout << "Present mode: Mailbox" << std::endl;
                 return availablePresentMode;
             }
-            
         }
 #if GPU_LOGGING
         {
             std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
             logFile << "could not use present mode: mailbox" << std::endl;
             logFile.close();
-        }
-        for (const auto& availablePresentMode : availablePresentModes) {
-            if (availablePresentMode == VK_PRESENT_MODE_FIFO_KHR) {
-                std::cout << "Present mode: V-Sync" << std::endl;
-                std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
-                logFile << "Present mode: V-Sync" << std::endl;
-                logFile.close();
-
-                return availablePresentMode;
-            }
-
         }
         {
             std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
@@ -398,18 +339,19 @@ namespace EWE {
             logFile.close();
         }
 #endif
+        for (const auto& availablePresentMode : availablePresentModes) {
+            if (availablePresentMode == VK_PRESENT_MODE_FIFO_KHR) {
+                std::cout << "Present mode: V-Sync" << std::endl;
+#if GPU_LOGGING
 
-
-
-      // for (const auto &availablePresentMode : availablePresentModes) {
-      //   if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-      //     std::cout << "Present mode: Immediate" << std::endl;
-      //     return availablePresentMode;
-      //   }
-      // }
-
-        std::cout << "Present mode: V-Sync" << std::endl;
-        return VK_PRESENT_MODE_FIFO_KHR;
+                std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
+                logFile << "Present mode: V-Sync" << std::endl;
+                logFile.close();
+#endif
+                return availablePresentMode;
+            }
+        }
+        EWE_UNREACHABLE;
     }
 
     VkExtent2D EWESwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
@@ -439,7 +381,6 @@ namespace EWE {
         );
     }
 
-
     EWESwapChain::DynamicStructs::DynamicStructs(VkImageView swapImageView, VkImageView depthImageView, uint32_t width, uint32_t height) {
 
         color_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -457,7 +398,6 @@ namespace EWE {
         depth_attachment_info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depth_attachment_info.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depth_attachment_info.clearValue = { 1.0f, 0 };
-
 
         render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
         render_info.pNext = nullptr;

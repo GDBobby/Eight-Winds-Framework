@@ -65,7 +65,7 @@ namespace EWE {
 				data.reserve(2000);
 			}
 			void AddPoint(float x, float y) {
-				float xmod = fmodf(x, Span);
+				float xmod = lab::Mod(x, Span);
 				if (!data.empty() && (xmod < data.back().x)) {
 					data.clear();
 				}

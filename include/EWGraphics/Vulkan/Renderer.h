@@ -21,7 +21,6 @@ namespace EWE {
 		EWERenderer(const EWERenderer&) = delete;
 		EWERenderer& operator=(const EWERenderer&) = delete;
 
-		//VkRenderPass getSwapChainRenderPass() const { return eweSwapChain->getRenderPass(); }
 		float GetAspectRatio() const { return eweSwapChain->ExtentAspectRatio(); }
 
 		VkExtent2D GetExtent() { 
@@ -47,6 +46,9 @@ namespace EWE {
 		void ChangeClearValues(float r, float g, float b, float a) {
 			eweSwapChain->ChangeClearValues(r, g, b, a);
 		}
+		VkViewport GetViewport() const{ return viewport;}
+		VkRect2D GetScissor() const {return scissor;}
+		std::unique_ptr<EWESwapChain> eweSwapChain;
 
 	private:
 		VkViewport viewport{};
@@ -56,7 +58,6 @@ namespace EWE {
 		bool hasTextOverlayBeenMade = false;
 		
 		MainWindow& mainWindow;
-		std::unique_ptr<EWESwapChain> eweSwapChain;
 
 		uint32_t currentImageIndex;
 		bool isFrameStarted{false};

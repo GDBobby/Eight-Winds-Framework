@@ -301,7 +301,11 @@ struct EWE_VK {
 #endif
 
 #if COMMAND_BUFFER_TRACING
+#ifdef _WIN32
         const std::string funcName = EWE::PLEASE::GetFuncName(+func);
+#else
+        const std::string funcName = "NSOL"; //not supported on linux YET
+#endif
         auto reinterpretedArgs = Recasting::ReinterpretArguments(funcName, sourceLocation, std::forward<Args>(args)...);
         Recasting::CallWithReinterpretedArguments(sourceLocation, func, std::move(reinterpretedArgs));
 #else

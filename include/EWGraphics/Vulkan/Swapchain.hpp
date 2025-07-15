@@ -26,11 +26,7 @@ class EWESwapChain {
 
         EWESwapChain(const EWESwapChain &) = delete;
         EWESwapChain &operator=(const EWESwapChain &) = delete;
-        /*
-        VkFramebuffer getFrameBuffer(int index) { return swapChainFramebuffers[index]; }
-        std::vector<VkFramebuffer> getFrameBuffers() { return swapChainFramebuffers; }
-        VkRenderPass getRenderPass() { return renderPass; }
-        */
+
         VkImageView GetImageView(int index) { return swapChainImageViews[index]; }
         size_t ImageCount() { return swapChainImages.size(); }
         VkFormat GetSwapChainImageFormat() { return swapChainImageFormat; }
@@ -70,18 +66,17 @@ class EWESwapChain {
             }
         }
 
+        VkDescriptorSet GetColorDescriptor(uint8_t index = VK::Object->frameIndex) const;
+
  private:
     void Init(bool fullScreen);
     void CreateSwapChain();
     void CreateImageViews();
     void CreateDepthResources();
     void InitDynamicStruct();
-    //void createFramebuffers();
-    //void createSyncObjects();
     //bool acquireFullscreen(); FULL SCREEN SHIT
     //bool releaseFullscreen();
 
-    // Helper functions
     VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
     VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
     VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
@@ -89,9 +84,6 @@ class EWESwapChain {
     VkFormat swapChainImageFormat{};
     VkFormat swapChainDepthFormat{};
     VkExtent2D swapChainExtent{};
-
-    //std::vector<VkFramebuffer> swapChainFramebuffers;
-    //VkPipelineRenderingCreateInfo const& pipeRenderInfo;
 
     struct DynamicStructs {
         VkRenderingInfo render_info{};
@@ -111,12 +103,12 @@ class EWESwapChain {
     std::vector<VkImageView> depthImageViews{};
     std::vector<VkImage> swapChainImages{};
     std::vector<VkImageView> swapChainImageViews{};
+    std::vector<VkDescriptorSet> swapChainImageDescriptors{};
 
     VkExtent2D windowExtent{};
 
     VkSwapchainKHR swapChain{};
     std::shared_ptr<EWESwapChain> oldSwapChain{};
-
 
     SyncHub* syncHub;
 
