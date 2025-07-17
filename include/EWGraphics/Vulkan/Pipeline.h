@@ -114,6 +114,7 @@ namespace EWE {
 			//VkPipelineRenderingCreateInfo const& pipeRenderInfo = nullptr;
 			VkPipelineRenderingCreateInfo pipelineRenderingInfo;
 			uint32_t subpass = 0;
+			void* pNext;
 		#if PIPELINE_DERIVATIVES
 			int32_t basePipelineIndex = -1;
 			EWEPipeline* basePipelineHandle = nullptr;
@@ -155,6 +156,7 @@ namespace EWE {
 		int32_t imguiIndex = -1;
 		ShaderTrackingStruct shaderModules{};
 
+		VkPipeline graphicsPipeline;
 	private:
 #else
 	private:
@@ -164,7 +166,6 @@ namespace EWE {
 
 
 
-		VkPipeline graphicsPipeline;
 
 		void CreateGraphicsPipeline(PipelineConfigInfo const& configInfo);
 

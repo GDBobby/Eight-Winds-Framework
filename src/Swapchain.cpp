@@ -53,7 +53,7 @@ namespace EWE {
         pipeline_rendering_create_info.depthAttachmentFormat = swapChainDepthFormat;
     }
 
-    VkDescriptorSet EWESwapChain::GetColorDescriptor(uint8_t index = VK::Object->frameIndex) const {
+    VkDescriptorSet EWESwapChain::GetColorDescriptor(uint8_t index) const {
         return swapChainImageDescriptors[index];
     }
 
@@ -161,7 +161,7 @@ namespace EWE {
         swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
         swapChainCreateInfo.imageExtent = extent;
         swapChainCreateInfo.imageArrayLayers = 1;
-        swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+        swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
         uint32_t queueData[] = { static_cast<uint32_t>(VK::Object->queueIndex[Queue::graphics]), static_cast<uint32_t>(VK::Object->queueIndex[Queue::present])};
 
@@ -226,7 +226,7 @@ namespace EWE {
 
         swapChainImageDescriptors.resize(swapChainImages.size());
         for(std::size_t i = 0; i < swapChainImageDescriptors.size(); i++){
-            vkCreateDesc
+            //vkCreateDesc
         }
     }
 

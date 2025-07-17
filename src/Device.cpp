@@ -230,6 +230,7 @@ namespace EWE {
         validationLayers{ "VK_LAYER_KHRONOS_validation",  },
         deviceExtensions{
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
             //VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
         },
         window{ window },
@@ -549,7 +550,12 @@ namespace EWE {
         //nvMeshStruct.pNext = nullptr;
         //nvMeshStruct.taskShader = VK_TRUE;
         //nvMeshStruct.meshShader = VK_TRUE;
-
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynState3{};
+        dynState3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+        dynState3.pNext = nullptr;
+        dynState3.extendedDynamicState3ColorBlendEnable = VK_TRUE;
+        dynState3.extendedDynamicState3ColorBlendEquation = VK_TRUE;
+        dynState3.extendedDynamicState3ColorWriteMask = VK_TRUE;
         
         VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
         meshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
@@ -559,7 +565,7 @@ namespace EWE {
         //    meshShaderFeatures.pNext = &nvMeshStruct;
         //}
         //else {
-            meshShaderFeatures.pNext = nullptr;
+            meshShaderFeatures.pNext = &dynState3;
         //}
         //meshShaderFeatures.meshShaderQueries = VK_TRUE;
 
@@ -572,13 +578,14 @@ namespace EWE {
             deviceFeatures2.pNext = &meshShaderFeatures;
         }
         else {
-            deviceFeatures2.pNext = nullptr;
+            deviceFeatures2.pNext = &dynState3;
         }
         //deviceFeatures2.pNext = nullptr; //disables mesh extension
         deviceFeatures2.features.samplerAnisotropy = VK_TRUE;
         deviceFeatures2.features.geometryShader = VK_TRUE;
         deviceFeatures2.features.wideLines = VK_TRUE;
         deviceFeatures2.features.tessellationShader = VK_TRUE;
+        
 #if EWE_DEBUG
         deviceFeatures2.features.fillModeNonSolid = VK_TRUE;
 #endif

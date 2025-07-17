@@ -17,10 +17,8 @@ namespace EWE {
 		static std::unordered_map<PipelineID, PipelineSystem*> pipelineSystem;
 #if EWE_DEBUG
 		static PipelineID currentPipe;
-		PipelineSystem(PipelineID pipeID) : myID{pipeID} {}
-#else
-		PipelineSystem() {}
 #endif
+		PipelineSystem(PipelineID pipeID) : myID{pipeID} {}
 		virtual void CreatePipeLayout() = 0;
 		virtual void CreatePipeline() = 0;
 
@@ -42,7 +40,10 @@ namespace EWE {
 		static void Destruct();
 		static void DestructAt(PipelineID pipeID);
 
+
+		PipelineID GetID() { return myID; };
 		void BindPipeline();
+		void BindPipelineWithoutViewScissor();
 
 		void BindModel(EWEModel* model);
 		void BindDescriptor(uint8_t descSlot, VkDescriptorSet* descSet);
@@ -70,8 +71,6 @@ namespace EWE {
 		VkShaderStageFlags pushStageFlags;
 		uint32_t pushSize; 
 		EWEDescriptorSetLayout* eDSL{};
-#if EWE_DEBUG
-		PipelineID myID;
-#endif
+		const PipelineID myID;
 	};
 }

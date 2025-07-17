@@ -20,7 +20,7 @@ namespace EWE {
             totalUsed++;
 
 #if EWE_DEBUG
-            printf("sampler count after add : %d \n", inUseCount);
+            //printf("sampler count after add : %d \n", inUseCount);
 #endif
         }
         bool Remove() {

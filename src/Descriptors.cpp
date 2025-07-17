@@ -73,6 +73,17 @@ namespace EWE {
         EWE_VK(vkCreateDescriptorSetLayout, VK::Object->vkDevice, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
     }
 
+    EWEDescriptorSetLayout::EWEDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> const& bindings)
+        : bindings{bindings} {
+
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
+        descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptorSetLayoutInfo.bindingCount = static_cast<uint32_t>(this->bindings.size());
+        descriptorSetLayoutInfo.pBindings = this->bindings.data();
+
+        EWE_VK(vkCreateDescriptorSetLayout, VK::Object->vkDevice, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
+    }
+
     EWEDescriptorSetLayout::~EWEDescriptorSetLayout() {
         EWE_VK(vkDestroyDescriptorSetLayout, VK::Object->vkDevice, descriptorSetLayout, nullptr);
 #if EWE_DEBUG
@@ -85,12 +96,12 @@ namespace EWE {
         //that all come before deconstruction time
 #endif
     }
-    ShaderDescriptorSets::Builder::ShaderDescriptorSets::Builder::Builder(){
+    ShaderDescriptorSets::Builder::Builder(){
         assert(bindings.size() == 0);
         bindings.push_back(std::vector<VkDescriptorSetLayoutBinding>{});
     }
 
-    ShaderDescriptorSets::Builder& ShaderDescriptorSets::Builder::AddBinding(){
+    ShaderDescriptorSets::Builder& ShaderDescriptorSets::Builder::AddBinding(VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t count) {
         VkDescriptorSetLayoutBinding layoutBinding{};
         layoutBinding.binding = bindings.back().size();
         layoutBinding.descriptorType = descriptorType;
@@ -101,15 +112,29 @@ namespace EWE {
     }
     ShaderDescriptorSets::Builder& ShaderDescriptorSets::Builder::BeginSet(){
         bindings.push_back(std::vector<VkDescriptorSetLayoutBinding>{});
+        return *this;
     }
     ShaderDescriptorSets* ShaderDescriptorSets::Builder::Build(){
         return Construct<ShaderDescriptorSets>({bindings});
     }
-    ShaderDescriptorSets(std::vector<std::vector<VkDescriptorSetLayoutBinding>> const& bindings){
-        descriptorSetLayouts.reserve(bindings.size());
-        for(auto const& set : bindings){
-            descriptorSetLayouts.emplace_back(set);
+
+
+    ShaderDescriptorSets::ShaderDescriptorSets(std::vector<std::vector<VkDescriptorSetLayoutBinding>> const& bindings) {
+		descriptorSetLayouts = reinterpret_cast<EWEDescriptorSetLayout*>(malloc(sizeof(EWEDescriptorSetLayout) * bindings.size()));
+        for (uint8_t i = 0; i < bindings.size(); i++) {
+			new(descriptorSetLayouts + i) EWEDescriptorSetLayout(bindings[i]);
         }
+    }
+
+
+    ShaderDescriptorSets::ShaderDescriptorSets(ShaderDescriptorSets&& other) {
+        descriptorSetLayouts = other.descriptorSetLayouts;
+		other.descriptorSetLayouts = nullptr;
+    }
+    ShaderDescriptorSets& ShaderDescriptorSets::operator=(ShaderDescriptorSets&& other) {
+        descriptorSetLayouts = other.descriptorSetLayouts;
+        other.descriptorSetLayouts = nullptr;
+        return *this;
     }
 
 
@@ -279,11 +304,11 @@ namespace EWE {
         EWE_VK(vkResetDescriptorPool, VK::Object->vkDevice, descriptorPool, 0);
     }
     void EWEDescriptorPool::BuildGlobalPool() {
-        uint32_t maxSets = 1000;
+        uint32_t maxSets = 10000;
         std::vector<VkDescriptorPoolSize> poolSizes{};
         VkDescriptorPoolSize poolSize;
         poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize.descriptorCount = 200;
+        poolSize.descriptorCount = 10000;
         poolSizes.emplace_back(poolSize);
         poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         poolSizes.emplace_back(poolSize);

@@ -34,6 +34,7 @@ namespace EWE {
         };
 
         EWEDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding>& bindings);
+        EWEDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> const& bindings);
         ~EWEDescriptorSetLayout();
         EWEDescriptorSetLayout(const EWEDescriptorSetLayout&) = delete;
         EWEDescriptorSetLayout& operator=(const EWEDescriptorSetLayout&) = delete;
@@ -50,28 +51,28 @@ namespace EWE {
         friend class EWEDescriptorPool;
     };
 
-    template<uint8_t SetCount>
     class ShaderDescriptorSets{
         public:
-        class Builder{
-            public:
-            Builder(){}
+        class Builder {
+        public:
+            Builder();
             Builder& BeginSet();
-            
+
             Builder& AddBinding(VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t count = 1);
             ShaderDescriptorSets* Build();
 
-            private:
+        private:
             std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindings{};
-        }
+        };
         ShaderDescriptorSets(std::vector<std::vector<VkDescriptorSetLayoutBinding>> const& bindings);
         ShaderDescriptorSets(ShaderDescriptorSets const&) = delete;
         ShaderDescriptorSets& operator=(ShaderDescriptorSets const&) = delete;
+        ShaderDescriptorSets(ShaderDescriptorSets&&);
+        ShaderDescriptorSets& operator=(ShaderDescriptorSets&&);
 
-        [[nodiscard]] VkDescriptorSetLayout* GetDescriptorSetLayout(uint8_t) { return &descriptorSetLayout; }
-        EWEDescriptorSetLayout descriptorSetLayouts[SetCount];
+        [[nodiscard]] VkDescriptorSetLayout* GetDescriptorSetLayout(uint8_t index) { return descriptorSetLayouts[index].GetDescriptorSetLayout(); }
 
-        std::vector<EWEDescriptorSetLayout> descriptorSetLayouts{};
+        EWEDescriptorSetLayout* descriptorSetLayouts{}; //array
     };
     
 

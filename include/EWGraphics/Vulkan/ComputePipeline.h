@@ -2,13 +2,18 @@
 #include "EWGraphics/Vulkan/VulkanHeader.h"
 #include "EWGraphics/Data/EngineDataTypes.h"
 
+#if PIPELINE_HOT_RELOAD
+#include "EWGraphics/Data/magic_enum.hpp"
+#endif
+
+
 #include <unordered_map>
 
 
 namespace EWE{
     struct ComputePipeline{
     protected:
-		static std::unordered_map<PipelineID, PipelineSystem*> pipelineSystem;
+		static std::unordered_map<PipelineID, ComputePipeline*> pipelineSystem;
     public:
 
 

@@ -73,6 +73,14 @@ namespace EWE {
 		pipe->Bind();
 		bindedTexture = VK_NULL_HANDLE;
 	}
+	void PipelineSystem::BindPipelineWithoutViewScissor() {
+#if EWE_DEBUG
+		currentPipe = myID;
+#endif
+		EWE_VK(vkCmdBindPipeline, VK::Object->GetFrameBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->graphicsPipeline);
+		bindedTexture = VK_NULL_HANDLE;
+	}
+
 	void PipelineSystem::BindModel(EWEModel* model) {
 		bindedModel = model;
 		assert(currentPipe == myID && "pipe id mismatch on model bind");
