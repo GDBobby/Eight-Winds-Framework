@@ -6,7 +6,6 @@ cmake_minimum_required(VERSION 3.23)
 project(EWGraphics VERSION 1.1.1)
 
 message(STATUS "Project source dir : ${PROJECT_SOURCE_DIR}")
-message(STATUS "CMAKE source dir : ${CMAKE_SOURCE_DIR}")
 message(STATUS "CMake current list dir : ${CMAKE_CURRENT_LIST_DIR}")
 message(STATUS "~~~ CURRENT SOURCE DIR : ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "project name : ${PROJECT_NAME}")
@@ -42,6 +41,15 @@ include(FetchContent)
 if(POLICY CMP0077)
 	cmake_policy(SET CMP0077 NEW)
 endif()
+
+FetchContent_Declare(
+	spirv-cross
+	GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
+	GIT_TAG HEAD
+	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/include/spirvcross"
+	BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/spirvcross-build"
+)
+FetchContent_MakeAvailable(spirv-cross)
 
 FetchContent_Declare(
 	stb
@@ -85,13 +93,22 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(vma)
 
-FetchContent_Declare(
-	lab
-	GIT_REPOSITORY https://github.com/GDBobby/LAB
-	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/lab"
-	GIT_TAG main
-)
-FetchContent_MakeAvailable(lab)
+if(NOT TARGET LinearAlgebra)
+	if(DEFINED LAB_PATH AND EXISTS "${LAB_PATH}/CMakeLists.txt")
+		message(STATUS "~~~~FOUND~~~~ Using local LAB from ${LAB_PATH}")
+		add_subdirectory(${LAB_PATH} ${LAB_PATH})
+		set(lab_LIB lab)
+	else()
+	Message(STATUS "!!!!FAILED!!!! to find lab_path in .env.cmake, using FetchContent")
+		FetchContent_Declare(
+			lab
+			GIT_REPOSITORY https://github.com/GDBobby/LAB
+			SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/lab"
+			GIT_TAG main
+		)
+		FetchContent_MakeAvailable(lab)
+	endif()
+endif()
 
 #potentially use a cmake command, USE_AFTERMATH
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/explicit_external/")
@@ -113,26 +130,6 @@ if(USING_NVIDIA_AFTERMATH)
 			GFSDK_Aftermath_Lib.x86
 		)
 	endif()
-endif()
-
-message(STATUS " SIMD - sse[${USE_SSE}] - avx2[${USE_AVX2}]")
-
-if(USE_SSE)
-    message(STATUS "Enabling SSE ")
-    add_compile_definitions(LAB_USING_SSE)
-    if(MSVC)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:SSE2")
-    else()
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
-  endif()
-elseif(USE_AVX2)
-    message(STATUS "Enabling AVX2")
-    add_compile_definitions(LAB_USING_AVX2)
-    if(MSVC)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
-    else()
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
-    endif()
 endif()
 
 
@@ -185,10 +182,12 @@ message(STATUS "linking libs")
 
 
 target_link_libraries(${PROJECT_NAME} 
+	spirv-cross-core
+	spirv-cross-reflect
 	glfw
 	${Vulkan_LIBRARY}
 	$<$<CONFIG:Debug>:${AFTERMATH_LIBS}>
-	LinearAlgebra LinearAlgebra-compile-options
+  	LinearAlgebra::LinearAlgebra-compile-options
 )
 
 set_target_properties(${PROJECT_NAME}
@@ -199,3 +198,4 @@ set_target_properties(${PROJECT_NAME}
 
 # Create source groups to maintain file structure in Visual Studio
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADER_FILES})
+# target_precompile_headers(${PROJECT_NAME} PRIVATE include/EWGraphics/stdafx.h)

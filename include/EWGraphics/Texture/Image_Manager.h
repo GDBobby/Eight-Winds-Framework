@@ -42,7 +42,7 @@ namespace EWE {
 		std::unordered_map<ImageID, ImageTracker*> imageTrackerIDMap{};
 		std::unordered_map<std::string, ImageID> imageStringToIDMap{};
 		std::unordered_map<ImageID, MaterialInfo> existingMaterialsByID{};
-		std::unordered_map<VkShaderStageFlags, EWEDescriptorSetLayout*> simpleTextureLayouts{};
+		std::unordered_map<VkShaderStageFlags, DescriptorSetLayout*> simpleTextureLayouts{};
 		
 		//ImageInfo* skybox_image;
 		//ImageInfo* UI_image;
@@ -53,7 +53,7 @@ namespace EWE {
 		static Image_Manager* imgMgrPtr;
 		static ImageID ConstructImageTracker(std::string const& imagePath, bool mipmap, bool zeroUsageDelete = false);
 		static ImageID ConstructImageTracker(std::string const& imagePath, VkSampler sampler, bool mipmap, bool zeroUsageDelete = false);
-		static EWEDescriptorSetLayout* GetSimpleTextureDSL(VkShaderStageFlags stageFlags);
+		static DescriptorSetLayout* GetSimpleTextureDSL(VkShaderStageFlags stageFlags);
 
 	public:
 		struct ImageReturn {

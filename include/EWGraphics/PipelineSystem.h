@@ -1,9 +1,9 @@
 #pragma once
 
 #include "EWGraphics/Vulkan/Device.hpp"
-#include "EWGraphics/Vulkan/Pipeline.h"
 #include "EWGraphics/Model/Model.h"
 #include "EWGraphics/Data/EngineDataTypes.h"
+#include "EWGraphics/Vulkan/PipeLayout.h"
 #if PIPELINE_HOT_RELOAD
 #include "EWGraphics/Data/magic_enum.hpp"
 #endif
@@ -12,65 +12,62 @@
 #include <memory>
 
 namespace EWE {
-	class PipelineSystem {
-	protected:
-		static std::unordered_map<PipelineID, PipelineSystem*> pipelineSystem;
-#if EWE_DEBUG
-		static PipelineID currentPipe;
-#endif
-		PipelineSystem(PipelineID pipeID) : myID{pipeID} {}
-		virtual void CreatePipeLayout() = 0;
-		virtual void CreatePipeline() = 0;
+	struct Pipeline {
+		PipeLayout* pipeLayout;
+		VkPipeline vkPipe;
 
-	public:
-		virtual ~PipelineSystem() {}
-		static PipelineSystem* At(PipelineID pipeID);
+		const PipelineID myID;
+		PipelineID GetID() const { return myID; };
+
+		Pipeline(PipelineID id, PipeLayout* layout);
+		Pipeline(PipelineID id, PipeLayout* layout, std::vector<KeyValuePair<ShaderStage, std::vector<Shader::SpecializationEntry>>> const& specInfo);
+
+		Pipeline(Pipeline&) = delete;
+		Pipeline(Pipeline&&) = delete;
+		Pipeline& operator=(Pipeline&) = delete;
+		Pipeline& operator=(Pipeline&&) = delete;
 
 #if PIPELINE_HOT_RELOAD
-		static void Emplace(std::string const& pipeName, PipelineID pipeID, PipelineSystem* pipeSys);
+		uint16_t framesSinceSwap = 0;
+		VkPipeline stalePipeline = VK_NULL_HANDLE; //going to let it tick for MAX_FRAMES_IN_FLIGHT + 1 then delete it
+
+		virtual void HotReload(bool layoutReload = true) = 0;
+
+		bool enabled = true;
+#endif
+		std::vector<KeyValuePair<ShaderStage, std::vector<Shader::SpecializationEntry>>> copySpecInfo;
+
+		void BindDescriptor(uint8_t descSlot, VkDescriptorSet* descSet);
+		void BindPipeline();
+		void BindPipelineWithVPScissor();
+
+		void Push(void* push, uint8_t pushIndex = 0);
+#if DEBUG_NAMING
+		void SetDebugName(const char* name);
+#endif
+	};
+
+	namespace PipelineSystem {
+
+
+		Pipeline* At(PipelineID pipeID);
+
+#if PIPELINE_HOT_RELOAD
+		void Emplace(std::string const& pipeName, PipelineID pipeID, Pipeline* pipe);
+
 		template<typename T>
-		static void Emplace(T pipeID, PipelineSystem* pipeSys) {
+		void Emplace(T pipeID, Pipeline* pipeSys) {
 			const std::string pipeName = std::string(magic_enum::enum_name(pipeID));
 			Emplace(pipeName, pipeID, pipeSys);
 		}
-		static void RenderPipelinesIMGUI();
 #else
-		static void Emplace(PipelineID pipeID, PipelineSystem* pipeSys);
+		void Emplace(PipelineID pipeID, PipelineSystem* pipeSys);
 #endif
-		static void Destruct();
-		static void DestructAt(PipelineID pipeID);
+		void DestructAll();
 
+		bool OptionalDestructAt(PipelineID pipeID);
+		void DestructAt(PipelineID pipeID);
 
-		PipelineID GetID() { return myID; };
-		void BindPipeline();
-		void BindPipelineWithoutViewScissor();
-
-		void BindModel(EWEModel* model);
-		void BindDescriptor(uint8_t descSlot, VkDescriptorSet* descSet);
-
-		void Push(void* push);
-		virtual void PushAndDraw(void* push);
-		void DrawModel();
-		virtual void DrawInstanced(EWEModel* model);
-		
-		[[nodiscard]] EWEDescriptorSetLayout* GetDSL() {
-			return eDSL;
-		}
-#if PIPELINE_HOT_RELOAD
-		EWEPipeline* pipe{ nullptr };
-	protected:
-#else
-	protected:
-		EWEPipeline* pipe{ nullptr };
-#endif
-
-		VkPipelineLayout pipeLayout{};
-		VkDescriptorSet bindedTexture = VK_NULL_HANDLE;
-		//VkPipelineCache cache{VK_NULL_HANDLE};
-		EWEModel* bindedModel = nullptr;
-		VkShaderStageFlags pushStageFlags;
-		uint32_t pushSize; 
-		EWEDescriptorSetLayout* eDSL{};
-		const PipelineID myID;
-	};
+		void DrawImgui();
+	}
 }

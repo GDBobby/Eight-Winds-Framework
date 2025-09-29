@@ -9,6 +9,8 @@
 #include "EWGraphics/resources/LoadingFrag.h"
 #include "EWGraphics/resources/LeafTex.h"
 
+#include "EWGraphics/Vulkan/GraphicsPipeline.h"
+
 #include "stb/stb_image.h"
 
 #include <sstream>
@@ -18,9 +20,6 @@ namespace EWE {
 	//id like to move some of the random generation components to local scope on leaf generation, not sure which ones yet
 	//id also like to attempt to move this entire calculation to the GPU on compute shaders
 	LeafSystem::LeafSystem() :
-#if EWE_DEBUG
-		PipelineSystem{ 0 },
-#endif
 		ranDev{}, randomGen{ ranDev() }, ellipseRatioDistribution{ 1.f,2.f }, rotRatioDistribution{ 1.f, 4.f },
 		angularFrequencyDistribution{ lab::PI<float>, lab::GetPI(2.f)}, initTimeDistribution{0.f, 20.f},
 		motionDistribution{ 0, 100 }, ellipseOscDistribution{ 0.75f, 1.25f }, depthVarianceDistribution{ -5.f, 5.f },
@@ -41,13 +40,11 @@ namespace EWE {
 #endif
 		Image_Manager::RemoveImage(leafImgID);
 		Deconstruct(leafModel);
-
-		EWE_VK(vkDestroyPipelineLayout, VK::Object->vkDevice, pipeLayout, nullptr);
+		Deconstruct(pipeline);
 
 		for (auto& buffer : leafBuffer) {
 			Deconstruct(buffer);
 		}
-		Deconstruct(pipe);
 #if DECONSTRUCTION_DEBUG
 		printf("end deconstructing leaf system \n");
 #endif
@@ -66,7 +63,7 @@ namespace EWE {
 #endif
 
 		for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			leafBuffer[i] = Construct<EWEBuffer>({ sizeof(lab::mat4) * LEAF_COUNT + sizeof(lab::mat4) + sizeof(lab::vec4), 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT });
+			leafBuffer[i] = Construct<EWEBuffer>( sizeof(lab::mat4) * LEAF_COUNT + sizeof(lab::mat4) + sizeof(lab::vec4), 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 			leafBuffer[i]->Map();
 
@@ -370,7 +367,7 @@ namespace EWE {
 		bufferStream.read(reinterpret_cast<char*>(&mesh.indices[0]), vertexSize * sizeof(uint32_t));
 
 
-		leafModel = Construct<EWEModel>({mesh.vertices.data(), mesh.vertices.size(), sizeof(mesh.vertices[0]), mesh.indices});
+		leafModel = Construct<EWEModel>(mesh.vertices.data(), mesh.vertices.size(), sizeof(mesh.vertices[0]), mesh.indices);
 
 #if DEBUG_NAMING
 		leafModel->SetDebugNames("leafModel");
@@ -384,17 +381,13 @@ namespace EWE {
 		Image_Manager::ImageReturn ret = Image_Manager::ConstructEmptyImageTracker("leaf");
 		leafImgID = ret.imgID;
 		Image::CreateImage(&ret.imgTracker->imageInfo, pixelPeek, false);
-		//printf("leaf model loaded \n");
-		//while (ret.imgTracker->imageInfo.descriptorImageInfo.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
-		//	std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		//}
 	}
 
 	void LeafSystem::CreateDescriptor() {
 		
 
 		for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			EWEDescriptorWriter descWriter{leafEDSL, DescriptorPool_Global};
+			EWEDescriptorWriter descWriter{pipeline->pipeLayout->descriptorSets->setLayouts[0].value, DescriptorPool_Global};
 			descWriter.WriteBuffer(leafBuffer[i]->DescriptorInfo());
 			descWriter.WriteImage(leafImgID);
 			leafDescriptor[i] = descWriter.Build();
@@ -407,66 +400,32 @@ namespace EWE {
 
 
 	void LeafSystem::Render() {
-#if EWE_DEBUG
-		currentPipe = myID;
-#endif
-		BindPipeline();
-		BindDescriptor(0, &leafDescriptor[VK::Object->frameIndex]);
+		pipeline->BindPipeline();
+		VK::Object->BindVPScissor();
+		pipeline->BindDescriptor(0, &leafDescriptor[VK::Object->frameIndex]);
 
 		leafModel->BindAndDrawInstanceNoBufferNoIndex(LEAF_COUNT);
 	}
 	void LeafSystem::CreatePipeline() {
-		CreatePipeLayout();
 
+		auto& vertFile = bin2cpp::getLoadingVertFile();
+		auto& fragFile = bin2cpp::getLoadingFragFile();
 
-		EWEPipeline::PipelineConfigInfo pipelineConfig{};
-		EWEPipeline::DefaultPipelineConfigInfo(pipelineConfig);
+		
+		PipeLayout* pipeLayout = Construct<PipeLayout>(
+			std::initializer_list<Shader*>{ 
+				CreateShader("leaf vert", vertFile.getSize(), vertFile.getBuffer()), 
+				CreateShader("leaf frag", fragFile.getSize(), fragFile.getBuffer()) 
+			}
+		);
 
-		pipelineConfig.pipelineLayout = pipeLayout;
+		PipelineConfigInfo pipelineConfig{};
+		pipelineConfig.SetToDefaults();
+
 		pipelineConfig.bindingDescriptions = EWEModel::GetBindingDescriptions<VertexNT>();
 		pipelineConfig.attributeDescriptions = VertexNT::GetAttributeDescriptions();
 
-		//std::array<VkShaderModule, Shader::Stage::COUNT> shaders{};
-		//Pipeline_Helper_Functions::CreateShaderModule("leaf.vert.spv", &shaders[Shader::vert]);
-		//Pipeline_Helper_Functions::CreateShaderModule("leaf.frag.spv", &shaders[Shader::frag]);
+		pipeline = Construct<GraphicsPipeline>(0, pipeLayout, pipelineConfig);
 
-
-		ShaderTrackingStruct shaderStruct{};
-		shaderStruct.shaderData[Shader::Stage::vert].filepath = "leaf.vert.spv";
-		shaderStruct.shaderData[Shader::Stage::frag].filepath = "leaf.frag.spv";
-		{
-			auto& vertFile = bin2cpp::getLoadingVertFile();
-			std::vector<uint32_t> shaderData{};
-			shaderData.resize(vertFile.getSize() / 4);
-			memcpy(shaderData.data(), vertFile.getBuffer(), vertFile.getSize());
-			Pipeline_Helper_Functions::CreateShaderModule(shaderData, &shaderStruct.shaderData[Shader::Stage::vert].shader);
-		}
-		{
-			auto& fragFile = bin2cpp::getLoadingFragFile();
-			std::vector<uint32_t> shaderData{};
-			shaderData.resize(fragFile.getSize() / 4);
-			memcpy(shaderData.data(), fragFile.getBuffer(), fragFile.getSize());
-			Pipeline_Helper_Functions::CreateShaderModule(shaderData, &shaderStruct.shaderData[Shader::Stage::frag].shader);
-		}	
-			
-		pipe = Construct<EWEPipeline>({ shaderStruct, pipelineConfig });
-	}
-	void LeafSystem::CreatePipeLayout() {
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-
-		pipelineLayoutInfo.pushConstantRangeCount = 0;
-		pipelineLayoutInfo.pPushConstantRanges = nullptr;
-
-		EWEDescriptorSetLayout::Builder dslBuilder{};
-		leafEDSL = dslBuilder
-		.AddBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-		.AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-		.Build();
-
-		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = leafEDSL->GetDescriptorSetLayout();
-
-		EWE_VK(vkCreatePipelineLayout, VK::Object->vkDevice, &pipelineLayoutInfo, nullptr, &pipeLayout);
 	}
 }

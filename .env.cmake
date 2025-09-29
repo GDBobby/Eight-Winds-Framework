@@ -1,0 +1,1 @@
+set(LAB_PATH C:/Projects/LinearAlgebra)

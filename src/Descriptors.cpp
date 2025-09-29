@@ -11,7 +11,7 @@
 namespace EWE {
 
     // *************** Descriptor Set Layout Builder *********************
-    EWEDescriptorSetLayout::Builder& EWEDescriptorSetLayout::Builder::AddBinding(VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t count) {
+    DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::AddBinding(VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t count) {
         VkDescriptorSetLayoutBinding layoutBinding{};
         layoutBinding.binding = bindings.size();
         layoutBinding.descriptorType = descriptorType;
@@ -20,7 +20,9 @@ namespace EWE {
         bindings.push_back(layoutBinding);
         return *this;
     }
-    EWEDescriptorSetLayout::Builder& EWEDescriptorSetLayout::Builder::AddGlobalBindingForCompute() {
+
+
+    DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::AddGlobalBindingForCompute() {
         VkDescriptorSetLayoutBinding globalBindings{};
         globalBindings.binding = 0;
         globalBindings.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -30,7 +32,7 @@ namespace EWE {
         return *this;
     }
 
-    EWEDescriptorSetLayout::Builder& EWEDescriptorSetLayout::Builder::AddGlobalBindings() {
+    DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::AddGlobalBindings() {
 #if EWE_DEBUG
         assert(bindings.size() == 0);
 #endif
@@ -47,45 +49,65 @@ namespace EWE {
 
         return *this;
     }
-#if EWE_DEBUG
-    EWEDescriptorSetLayout* EWEDescriptorSetLayout::Builder::Build(std::source_location srcLoc) {
-        return Construct<EWEDescriptorSetLayout>({ bindings }, srcLoc);
+    DescriptorSetLayout* DescriptorSetLayout::Builder::BuildBindless() {
+        auto* ret = Construct<DescriptorSetLayout>(bindings, true);
+        ret->BuildVkDSL();
+        return ret;
     }
-#else
-    EWEDescriptorSetLayout* EWEDescriptorSetLayout::Builder::Build() {
-        return Construct<EWEDescriptorSetLayout>({ bindings });
+    DescriptorSetLayout* DescriptorSetLayout::Builder::Build() {
+        auto* ret = Construct<DescriptorSetLayout>(bindings);
+        ret->BuildVkDSL();
+        return ret;
     }
-#endif
-    EWEDescriptorSetLayout EWEDescriptorSetLayout::Builder::BuildInPlace(){
-        return EWEDescriptorSetLayout(bindings);
+    DescriptorSetLayout DescriptorSetLayout::Builder::BuildInPlace() {
+        return  DescriptorSetLayout(bindings);
     }
 
     // *************** Descriptor Set Layout *********************
 
-    EWEDescriptorSetLayout::EWEDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding>& bindings)
-        : bindings{ std::move(bindings) } {
-
+    void DescriptorSetLayout::BuildVkDSL() {
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
         descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        descriptorSetLayoutInfo.bindingCount = static_cast<uint32_t>(this->bindings.size());
-        descriptorSetLayoutInfo.pBindings = this->bindings.data();
+        descriptorSetLayoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        descriptorSetLayoutInfo.pBindings = bindings.data();
 
-        EWE_VK(vkCreateDescriptorSetLayout, VK::Object->vkDevice, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
+        if (bindless) {
+            const VkDescriptorBindingFlagsEXT flags =
+                VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
+                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |
+                VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT;
+
+            VkDescriptorSetLayoutBindingFlagsCreateInfoEXT binding_flags{};
+            binding_flags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+            binding_flags.pNext = nullptr;
+            binding_flags.bindingCount = 1;
+            binding_flags.pBindingFlags = &flags;
+            descriptorSetLayoutInfo.pNext = &binding_flags;
+
+            descriptorSetLayoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+
+            EWE_VK(vkCreateDescriptorSetLayout, VK::Object->vkDevice, &descriptorSetLayoutInfo, nullptr, &vkDSL);
+        }
+        else {
+            descriptorSetLayoutInfo.flags = 0;
+            descriptorSetLayoutInfo.pNext = nullptr;
+            EWE_VK(vkCreateDescriptorSetLayout, VK::Object->vkDevice, &descriptorSetLayoutInfo, nullptr, &vkDSL);
+        }
     }
 
-    EWEDescriptorSetLayout::EWEDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> const& bindings)
-        : bindings{bindings} {
+    DescriptorSetLayout::DescriptorSetLayout() : vkDSL{ VK_NULL_HANDLE }, bindings{}, bindless{ false } {}
+    DescriptorSetLayout::DescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding>& bindings, bool bindless)
+        : vkDSL{ VK_NULL_HANDLE }, bindings{ std::move(bindings) }, bindless{ bindless }
+    {}
+    DescriptorSetLayout::DescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> const& bindings, bool bindless)
+        : vkDSL{ VK_NULL_HANDLE }, bindings{ bindings }, bindless{ bindless }
+    {}
 
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
-        descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        descriptorSetLayoutInfo.bindingCount = static_cast<uint32_t>(this->bindings.size());
-        descriptorSetLayoutInfo.pBindings = this->bindings.data();
-
-        EWE_VK(vkCreateDescriptorSetLayout, VK::Object->vkDevice, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
-    }
-
-    EWEDescriptorSetLayout::~EWEDescriptorSetLayout() {
-        EWE_VK(vkDestroyDescriptorSetLayout, VK::Object->vkDevice, descriptorSetLayout, nullptr);
+    DescriptorSetLayout::~DescriptorSetLayout() {
+        if (vkDSL != VK_NULL_HANDLE) {
+            EWE_VK(vkDestroyDescriptorSetLayout, VK::Object->vkDevice, vkDSL, nullptr);
+        }
 #if EWE_DEBUG
         printf("probably have memory leaks currently, address this ASAP \n");
         //the reason i have this print statement (feb 2024)
@@ -96,45 +118,38 @@ namespace EWE {
         //that all come before deconstruction time
 #endif
     }
-    ShaderDescriptorSets::Builder::Builder(){
-        assert(bindings.size() == 0);
-        bindings.push_back(std::vector<VkDescriptorSetLayoutBinding>{});
-    }
-
-    ShaderDescriptorSets::Builder& ShaderDescriptorSets::Builder::AddBinding(VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t count) {
-        VkDescriptorSetLayoutBinding layoutBinding{};
-        layoutBinding.binding = bindings.back().size();
-        layoutBinding.descriptorType = descriptorType;
-        layoutBinding.descriptorCount = count;
-        layoutBinding.stageFlags = stageFlags;
-        bindings.back().push_back(layoutBinding);
-        return *this;
-    }
-    ShaderDescriptorSets::Builder& ShaderDescriptorSets::Builder::BeginSet(){
-        bindings.push_back(std::vector<VkDescriptorSetLayoutBinding>{});
-        return *this;
-    }
-    ShaderDescriptorSets* ShaderDescriptorSets::Builder::Build(){
-        return Construct<ShaderDescriptorSets>({bindings});
-    }
 
 
-    ShaderDescriptorSets::ShaderDescriptorSets(std::vector<std::vector<VkDescriptorSetLayoutBinding>> const& bindings) {
-		descriptorSetLayouts = reinterpret_cast<EWEDescriptorSetLayout*>(malloc(sizeof(EWEDescriptorSetLayout) * bindings.size()));
-        for (uint8_t i = 0; i < bindings.size(); i++) {
-			new(descriptorSetLayouts + i) EWEDescriptorSetLayout(bindings[i]);
+    DescriptorLayoutPack::DescriptorLayoutPack(std::vector<std::vector<VkDescriptorSetLayoutBinding>> const& sets) {
+        setLayouts.reserve(sets.size());
+        for (uint8_t i = 0; i < sets.size(); i++) {
+            setLayouts.push_back(i, Construct<DescriptorSetLayout>(sets[i]));
         }
     }
 
 
-    ShaderDescriptorSets::ShaderDescriptorSets(ShaderDescriptorSets&& other) {
-        descriptorSetLayouts = other.descriptorSetLayouts;
-		other.descriptorSetLayouts = nullptr;
+    DescriptorLayoutPack::DescriptorLayoutPack(DescriptorLayoutPack&& other) noexcept
+        : setLayouts{ std::move(other.setLayouts)}
+    {
+		other.setLayouts.clear();
     }
-    ShaderDescriptorSets& ShaderDescriptorSets::operator=(ShaderDescriptorSets&& other) {
-        descriptorSetLayouts = other.descriptorSetLayouts;
-        other.descriptorSetLayouts = nullptr;
-        return *this;
+
+    DescriptorLayoutPack::~DescriptorLayoutPack() {
+        for (auto& dsl : setLayouts) {
+            if (dsl.value) {
+                Deconstruct(dsl.value);
+            }
+        }
+        setLayouts.clear();
+    }
+
+    VkDescriptorSetLayout* DescriptorLayoutPack::GetDescriptorSetLayout(uint8_t index) { 
+        for (auto& set : setLayouts) {
+            if (set.key == index) {
+                return &set.value->vkDSL;
+            }
+        }
+        EWE_UNREACHABLE;
     }
 
 
@@ -154,15 +169,9 @@ namespace EWE {
         maxSets = count;
         return *this;
     }
-#if EWE_DEBUG
-    EWEDescriptorPool* EWEDescriptorPool::Builder::Build(std::source_location srcLoc) const {
-        return Construct<EWEDescriptorPool>({ maxSets, poolFlags, poolSizes }, srcLoc);
-    }
-#else
     EWEDescriptorPool* EWEDescriptorPool::Builder::Build() const {
-        return Construct<EWEDescriptorPool>({ maxSets, poolFlags, poolSizes });
+        return Construct<EWEDescriptorPool>(maxSets, poolFlags, poolSizes);
     }
-#endif
 
     // *************** Descriptor Pool *********************
 
@@ -217,12 +226,13 @@ namespace EWE {
         EWE_VK(vkAllocateDescriptorSets, VK::Object->vkDevice, &allocInfo, &descriptor);
         mutex.unlock();
     }
-    void EWEDescriptorPool::AllocateDescriptor(EWEDescriptorSetLayout* eDSL, VkDescriptorSet& descriptor) {
+    void EWEDescriptorPool::AllocateDescriptor(DescriptorSetLayout* eDSL, VkDescriptorSet& descriptor) {
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.pNext = nullptr;
         allocInfo.descriptorPool = descriptorPool;
-        allocInfo.pSetLayouts = eDSL->GetDescriptorSetLayout();
+        allocInfo.pSetLayouts = &eDSL->vkDSL;
         allocInfo.descriptorSetCount = 1;
 
         mutex.lock();
@@ -236,11 +246,11 @@ namespace EWE {
         EWE_VK(vkAllocateDescriptorSets, VK::Object->vkDevice, &allocInfo, &descriptor);
         mutex.unlock();
     }
-    void EWEDescriptorPool::FreeDescriptors(DescriptorPool_ID poolID, EWEDescriptorSetLayout* eDSL, std::vector<VkDescriptorSet>& descriptors) {
+    void EWEDescriptorPool::FreeDescriptors(DescriptorPool_ID poolID, DescriptorSetLayout* eDSL, std::vector<VkDescriptorSet>& descriptors) {
         pools.at(poolID).FreeDescriptors(eDSL, descriptors);
         //printf("active descriptors after removal : %d \n", activeDescriptors);
     }
-    void EWEDescriptorPool::FreeDescriptors(EWEDescriptorSetLayout* eDSL, std::vector<VkDescriptorSet>& descriptors) {
+    void EWEDescriptorPool::FreeDescriptors(DescriptorSetLayout* eDSL, std::vector<VkDescriptorSet>& descriptors) {
         mutex.lock();
 
         for (auto& dt : eDSL->bindings) {
@@ -263,10 +273,10 @@ namespace EWE {
         mutex.unlock();
         //printf("active descriptors after removal : %d \n", activeDescriptors);
     }
-    void EWEDescriptorPool::FreeDescriptor(DescriptorPool_ID poolID, EWEDescriptorSetLayout* eDSL, const VkDescriptorSet* descriptor) {
+    void EWEDescriptorPool::FreeDescriptor(DescriptorPool_ID poolID, DescriptorSetLayout* eDSL, const VkDescriptorSet* descriptor) {
         pools.at(poolID).FreeDescriptor(eDSL, descriptor);
     }
-    void EWEDescriptorPool::FreeDescriptor(EWEDescriptorSetLayout* eDSL, const VkDescriptorSet* descriptor) {
+    void EWEDescriptorPool::FreeDescriptor(DescriptorSetLayout* eDSL, const VkDescriptorSet* descriptor) {
         mutex.lock();
         for (auto& dt : eDSL->bindings) {
             trackers.at(dt.descriptorType).RemoveDescriptor(1);
@@ -316,7 +326,7 @@ namespace EWE {
         poolSizes.emplace_back(poolSize);
         poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         poolSizes.emplace_back(poolSize);
-        VkDescriptorPoolCreateFlags poolFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        VkDescriptorPoolCreateFlags poolFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
         EWEDescriptorPool::pools.try_emplace(0, maxSets, poolFlags, poolSizes);
         //EWEDescriptorPool(EWEDevice & eweDevice, uint32_t maxSets,VkDescriptorPoolCreateFlags poolFlags,const std::vector<VkDescriptorPoolSize>&poolSizes);
@@ -367,9 +377,9 @@ namespace EWE {
 
     // *************** Descriptor Writer *********************
 
-    EWEDescriptorWriter::EWEDescriptorWriter(EWEDescriptorSetLayout* setLayout, EWEDescriptorPool& pool)
+    EWEDescriptorWriter::EWEDescriptorWriter(DescriptorSetLayout* setLayout, EWEDescriptorPool& pool)
         : setLayout{ setLayout }, pool{ pool } {}
-    EWEDescriptorWriter::EWEDescriptorWriter(EWEDescriptorSetLayout* setLayout, DescriptorPool_ID poolID) 
+    EWEDescriptorWriter::EWEDescriptorWriter(DescriptorSetLayout* setLayout, DescriptorPool_ID poolID) 
         : setLayout{ setLayout }, pool{ EWEDescriptorPool::pools.at(poolID) }
     {}
 
@@ -397,8 +407,7 @@ namespace EWE {
         VkWriteDescriptorSet write{};
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.pNext = nullptr;
-        auto& bindingDescription = setLayout->bindings[writes.size()];
-        write.descriptorType = bindingDescription.descriptorType;
+        write.descriptorType = setLayout->bindings[writes.size()].descriptorType;
         write.dstBinding = static_cast<uint32_t>(writes.size());
         write.pImageInfo = imgInfo;
         write.descriptorCount = 1;

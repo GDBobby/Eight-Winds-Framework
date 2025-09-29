@@ -43,31 +43,10 @@ namespace EWE{
     struct GraphicsFence {
         Fence fence{};
         std::mutex mut{};
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-        std::vector<CommandBuffer*> commands{};
-        std::vector<ImageInfo*> imageInfos{};
-        std::vector<StagingBuffer*> stagingBuffers{};
-#else
         GraphicsCommand gCommand{};
         Semaphore* signalSemaphore{ nullptr };
-#endif
-
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-        void CheckReturn(std::vector<CommandBuffer*>& output, uint64_t time);
-#else
         void CheckReturn(uint64_t time);
-#endif
     };
-
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-    struct TransferFence {
-        Fence fence{};
-        Semaphore* signalSemaphoreForGraphics{ nullptr };
-        TransferCommand callbacks{};
-
-        void WaitReturnCallbacks(std::vector<TransferCommand>& output, uint64_t time);
-    };
-#endif
 
     //not thread safe
 
@@ -108,49 +87,29 @@ namespace EWE{
 
     class QueueSyncPool{
     private:
-        const uint8_t size;
+        const uint16_t size;
 
         std::vector<Semaphore> semaphores;
         std::mutex semAcqMut{};
 
 
-        KeyValueContainer<std::thread::id, ThreadedSingleTimeCommands, true> threadedSTCs;
+        KeyValueContainer<std::thread::id, ThreadedSingleTimeCommands> threadedSTCs;
         static thread_local ThreadedSingleTimeCommands* threadSTC;
+        //std::mutex threadedSTCMutex{};
 
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-        std::vector<TransferFence> transferFences;
-        std::vector<GraphicsFence> graphicsFences;
-        std::mutex graphicsFenceAcqMut{};
-        std::mutex transferFenceAcqMut{};
-
-        void EndSingleTimeCommandGraphicsGroup(CommandBuffer& cmdBuf, std::vector<Semaphore*> waitSemaphores, std::vector<ImageInfo*> imageInfos);
-
-        void HandleTransferCallbacks(std::vector<TransferCommand> callbacks);
-#else
         std::vector<Fence> fences;
         std::mutex fenceAcqMut{};
         std::vector<GraphicsFence> mainThreadGraphicsFences;
         VkCommandPool mainThreadSTCGraphicsPool{ VK_NULL_HANDLE };
         std::vector<CommandBuffer> mainThreadGraphicsCmdBufs;
-#endif
 
     public:
-        QueueSyncPool(uint8_t size);
+        QueueSyncPool(uint16_t size);
 
         ~QueueSyncPool();
         Semaphore& GetSemaphore(VkSemaphore semaphore);
 
-#if SEMAPHORE_TRACKING
-        void SemaphoreBeginSignaling(VkSemaphore semaphore, std::source_location srcLoc = std::source_location::current()){
-            GetSemaphore(semaphore).BeginSignaling(srcLoc);
-        }
-        void SemaphoreBeginWaiting(VkSemaphore semaphore, std::source_location srcLoc = std::source_location::current()) {
-            GetSemaphore(semaphore).BeginWaiting(srcLoc);
-        }
-        void SemaphoreFinishedWaiting(VkSemaphore semaphore, std::source_location srcLoc = std::source_location::current()) {
-            GetSemaphore(semaphore).FinishWaiting(srcLoc);
-        }
-#else
+
         void SemaphoreBeginSignaling(VkSemaphore semaphore) {
             GetSemaphore(semaphore).BeginSignaling();
         }
@@ -160,37 +119,13 @@ namespace EWE{
         void SemaphoreFinishedWaiting(VkSemaphore semaphore) {
             GetSemaphore(semaphore).FinishWaiting();
         }
-#endif
         
-#if SEMAPHORE_TRACKING
-        Semaphore* GetSemaphoreForSignaling(std::source_location srcLoc = std::source_location::current());
-#else
         Semaphore* GetSemaphoreForSignaling();
-#endif
 
         CommandBuffer& GetCmdBufSingleTime(Queue::Enum queue);
         bool CheckFencesForUsage();
         void CheckFencesForCallbacks();
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-        TransferFence& GetTransferFence();
-        GraphicsFence& GetGraphicsFence();
-
-        struct GraphicsSubmitData {
-            CommandBuffer* cmdBuf;
-            std::vector<Semaphore*> semaphores;
-            std::vector<ImageInfo*> imageInfos;
-            GraphicsSubmitData(CommandBuffer& cmdBuf, std::vector<Semaphore*>& semaphores, std::vector<ImageInfo*>& imageInfos) :
-                cmdBuf{ &cmdBuf },
-                semaphores{ std::move(semaphores) },
-                imageInfos{ std::move(imageInfos) }
-            {}
-        };
-
-        std::vector<GraphicsSubmitData> graphicsSTCGroup{};
-        std::mutex graphicsAsyncMut{};
-#else
         Fence& GetFence();
         GraphicsFence& GetMainThreadGraphicsFence();
-#endif
     };
 } //namespace EWE

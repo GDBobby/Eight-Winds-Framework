@@ -18,21 +18,23 @@
 #include "EWGraphics/Vulkan/vk_mem_alloc.h"
 #endif
 #if CALL_TRACING
-void EWE_VK_RESULT(VkResult vkResult, const std::source_location& sourceLocation) {
+void EWE_VK_RESULT(VkResult vkResult) {
 #if DEBUGGING_DEVICE_LOST                                                                                        
     if (vkResult == VK_ERROR_DEVICE_LOST) { EWE::VKDEBUG::OnDeviceLost(); }
     else
 #endif
     if (vkResult != VK_SUCCESS) {
+        printf("need to set up stack tracing here\n");
+        /*
         printf("VK_ERROR : %s(%d) : %s - %d \n", sourceLocation.file_name(), sourceLocation.line(), sourceLocation.function_name(), vkResult);
         std::ofstream logFile{};
         logFile.open(GPU_LOG_FILE, std::ios::app);
         assert(logFile.is_open() && "Failed to open log file");
         logFile << "VK_ERROR : " << sourceLocation.file_name() << '(' << sourceLocation.line() << ") : " << sourceLocation.function_name() << " : VkResult(" << vkResult << ")\n";
-        
         logFile << "current frame index - " << EWE::VK::Object->frameIndex << std::endl;
+        */
+#if COMMAND_BUFFER_TRACING
         for (uint8_t i = 0; i < EWE::VK::Object->renderCommands.size(); i++) {
-
             while (EWE::VK::Object->renderCommands[i].usageTracking.size() > 0) {
                 for (auto& usage : EWE::VK::Object->renderCommands[i].usageTracking.front()) {
                     logFile << "cb(" << +i  << ")(" << EWE::VK::Object->renderCommands[i].usageTracking.size() << ") : " << usage.funcName << '\n';
@@ -40,7 +42,8 @@ void EWE_VK_RESULT(VkResult vkResult, const std::source_location& sourceLocation
                 EWE::VK::Object->renderCommands[i].usageTracking.pop();
             }
         }
-        logFile.close();
+#endif
+        //logFile.close();
         assert(vkResult == VK_SUCCESS && "VK_ERROR");
     }
 }
@@ -65,6 +68,12 @@ void EWE_VK_RESULT(VkResult vkResult) {
 
 namespace EWE {
     VK* VK::Object{ nullptr };
+    void VK::BindVPScissor() const {
+        EWE_VK(vkCmdSetViewport, renderCommands[frameIndex], 0, 1, &viewport);
+        EWE_VK(vkCmdSetScissor, renderCommands[frameIndex], 0, 1, &scissor);
+        
+    }
+
     PFN_vkCmdDrawMeshTasksEXT VK::CmdDrawMeshTasksEXT = VK_NULL_HANDLE;
 
 
@@ -106,8 +115,7 @@ namespace EWE {
         VmaAllocationInfo vmaAllocInfo{};
         VmaAllocationCreateInfo vmaAllocCreateInfo{};
         vmaAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        vmaAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-            VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        vmaAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
         EWE_VK(vmaCreateBuffer, VK::Object->vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer, &vmaAlloc, &vmaAllocInfo);
 
         bufferSize = size;
@@ -264,7 +272,7 @@ namespace EWE {
                 initialized = true;
             }
 
-            DWORD64 address = reinterpret_cast<DWORD64>(funcPtr);
+            uint32_t64 address = reinterpret_cast<uint32_t64>(funcPtr);
 
             char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
             SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(buffer);
@@ -287,7 +295,7 @@ namespace EWE {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
-#if CALL_TRACING
+#if COMMAND_BUFFER_TRACING
         if (usageTracking.size() > 2) {
             usageTracking.pop();
         }
@@ -301,7 +309,7 @@ namespace EWE {
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-#if CALL_TRACING
+#if COMMAND_BUFFER_TRACING
         if (usageTracking.size() > 2) {
             usageTracking.pop();
         }

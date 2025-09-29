@@ -13,7 +13,9 @@ namespace EWE {
     namespace UI_Texture {
 
         void CreateUIImage(ImageInfo& uiImageInfo, std::vector<PixelPeek> const& pixelPeek, bool mipmapping) {
+#if IMAGE_DEBUGGING
             printf("beginning creation of ui image - %s\n", uiImageInfo.imageName.c_str());
+#endif
             std::size_t layerSize = pixelPeek[0].width * pixelPeek[0].height * 4;
             uiImageInfo.arrayLayers = static_cast<uint16_t>(pixelPeek.size());
             const VkDeviceSize imageSize = layerSize * uiImageInfo.arrayLayers;
@@ -26,7 +28,7 @@ namespace EWE {
 #endif
             void* data;
 #if USING_VMA
-            StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ imageSize });
+            StagingBuffer* stagingBuffer = Construct<StagingBuffer>( imageSize );
             vmaMapMemory(VK::Object->vmaAllocator, stagingBuffer->vmaAlloc, &data);
 #else
             StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ imageSize });
@@ -87,8 +89,9 @@ namespace EWE {
             uiImageInfo.imageName = pixelPeek[0].debugName;
 #endif
             Image::CreateImageCommands(uiImageInfo, imageCreateInfo, stagingBuffer, mipmapping);
-            
+#if IMAGE_DEBUGGING
             printf("end of ui image creation - %s\n", uiImageInfo.imageName.c_str());
+#endif
         }
 
         void CreateUIImageView(ImageInfo& uiImageInfo) {

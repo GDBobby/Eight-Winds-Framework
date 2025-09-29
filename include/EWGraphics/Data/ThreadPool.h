@@ -20,12 +20,13 @@ namespace EWE {
     private:
         static ThreadPool* singleton;
         std::vector<std::thread> threads{};
-        KeyValueContainer<std::thread::id, std::queue<std::function<void()>>, true> threadSpecificTasks;
+        KeyValueContainer<std::thread::id, std::queue<std::function<void()>>> threadSpecificTasks;
+        std::mutex threadSpecificTaskMutex{};
         static thread_local std::queue<std::function<void()>>* localThreadTasks;
         static thread_local int myThreadIndex;
 
         std::vector<std::mutex> threadMutexesBase;
-        KeyValueContainer<std::thread::id, std::mutex*, true> threadSpecificMutex;
+        KeyValueContainer<std::thread::id, std::mutex*> threadSpecificMutex;
 #if EWE_DEBUG
         struct TaskStruct {
             std::string name;
@@ -71,11 +72,11 @@ namespace EWE {
         }
         template<typename Value>
         static auto GetKVContainerWithThreadIDKeys() {
-            KeyValueContainer<std::thread::id, Value, true> ret{};
+            KeyValueContainer<std::thread::id, Value> ret{};
             ret.reserve(singleton->threads.size());
 
             for (auto& threadID : singleton->threads) {
-                ret.Add(threadID.get_id());
+                ret.emplace_back(threadID.get_id());
             }
             return ret;
         }

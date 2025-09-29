@@ -512,11 +512,7 @@ namespace EWE {
             const int height = pixelPeek.height;
 
             const VkDeviceSize imageSize = width * height * 4;
-#if USING_VMA
-            StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ imageSize, pixelPeek.pixels });
-#else
-            StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ imageSize, pixelPeek.pixels });
-#endif
+            StagingBuffer* stagingBuffer = Construct<StagingBuffer>( imageSize, pixelPeek.pixels );
             //printf("freeing pixels \n");
             stbi_image_free(pixelPeek.pixels);
 
@@ -529,11 +525,7 @@ namespace EWE {
             const VkDeviceSize imageSize = layerSize * pixelPeek.size();
             void* data;
 
-#if USING_VMA
-            StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ imageSize });
-#else
-            StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ imageSize });
-#endif
+            StagingBuffer* stagingBuffer = Construct<StagingBuffer>(imageSize);
             stagingBuffer->Map(data);
             uint64_t memAddress = reinterpret_cast<uint64_t>(data);
 

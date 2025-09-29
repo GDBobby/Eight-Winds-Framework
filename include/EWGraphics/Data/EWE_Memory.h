@@ -11,31 +11,15 @@
 #define USING_MALLOC false
 
 namespace Internal { //need header access for the templates
-#if CALL_TRACING
-    void* ewe_alloc(std::size_t element_size, std::size_t element_count, std::source_location srcLoc = std::source_location::current());
-#endif
-    void ewe_free(void* ptr);
+    //void* ewe_alloc(std::size_t element_size, std::size_t element_count);
+    //void ewe_free(void* ptr);
 }//namespace Internal
 
-#if CALL_TRACING
-void ewe_alloc_mem_track(void* ptr, std::source_location srcLoc = std::source_location::current());
-#endif
+void ewe_alloc_mem_track(void* ptr);
 void ewe_free_mem_track(void* ptr);
 
-//template<typename T, typename... Args>
-//void ConstructSingular(Args&&... args) {
-//#if USING_MALLOC
-//    void* memory = ewe_alloc_internal(sizeof(T), 1, file, line, sourceFunction);
-//    assert(memory && "memory is nullptr");
-//    return new (memory) T(std::forward<Args>(args)...);
-//#else
-//    T* ret = new T(std::forward<Args>(args)...);
-//#if EWE_DEBUG
-//    ewe_alloc_mem_track(reinterpret_cast<void*>(ret), file, line, sourceFunction);
-//#endif
-//    return ret;
-//#endif
-//}
+
+/*
 template<typename T>
 struct ConstructHelper {
     T* ptr;
@@ -51,18 +35,17 @@ struct ConstructHelper {
         assert(memory);
         ptr = new (memory) T(std::forward<Args>(args)...);
 #endif
+        ewe_alloc_mem_track(reinterpret_cast<void*>(ptr));
     }
 };
+*/
 
-template<typename T>
-T* Construct(ConstructHelper<T> construct
-#if CALL_TRACING
-    , std::source_location srcLoc = std::source_location::current()){
-    ewe_alloc_mem_track(reinterpret_cast<void*>(construct.ptr), srcLoc);
-#else
-  ) {
-#endif
-    return construct.ptr;
+template<typename T, typename... Args>
+requires (std::is_constructible_v<T, Args...>)
+T* Construct(Args&&... args) {
+    T* ret = new T(std::forward<Args>(args)...);
+    ewe_alloc_mem_track(reinterpret_cast<void*>(ret));
+    return ret;
 }
 
 template<typename T>

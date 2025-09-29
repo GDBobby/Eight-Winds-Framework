@@ -12,8 +12,7 @@ namespace EWE {
 		static EWERenderer* instance;
 
 	public:
-
-		static void BindGraphicsPipeline(VkPipeline graphicsPipeline);
+		static void BindViewportScissor();
 
 		EWERenderer(MainWindow& window);
 		~EWERenderer();
@@ -46,13 +45,9 @@ namespace EWE {
 		void ChangeClearValues(float r, float g, float b, float a) {
 			eweSwapChain->ChangeClearValues(r, g, b, a);
 		}
-		VkViewport GetViewport() const{ return viewport;}
-		VkRect2D GetScissor() const {return scissor;}
 		std::unique_ptr<EWESwapChain> eweSwapChain;
 
 	private:
-		VkViewport viewport{};
-		VkRect2D scissor{};
 		void RecreateSwapChain();
 
 		bool hasTextOverlayBeenMade = false;

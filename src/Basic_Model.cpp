@@ -5,7 +5,7 @@
 namespace EWE {
     namespace Basic_Model {
 
-        EWEModel* Circle(uint16_t const points, float radius SRC_PARAM) {
+        EWEModel* Circle(uint16_t const points, float radius) {
             //utilizing a triangle fan
 #if EWE_DEBUG
             if (points < 5) {
@@ -35,10 +35,10 @@ namespace EWE {
             indices.push_back(0);
             indices.push_back(points - 1);
             indices.push_back(1);
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices} SRC_PASS);
+            return Construct<EWEModel>( vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
 
-        EWEModel* Quad(lab::vec2 uvScale SRC_PARAM) {
+        EWEModel* Quad(lab::vec2 uvScale) {
             std::vector<Vertex> vertices{
                 {{0.5f,0.0f, -0.5f}, {0.f,1.f,0.f}, {uvScale.x,uvScale.y}, {1.f, 0.f, 0.f}},
                 {{-0.5f,0.0f, -0.5f}, {0.f,1.f,0.f}, {0.0f,uvScale.y}, {1.f, 0.f, 0.f}},
@@ -46,9 +46,9 @@ namespace EWE {
                 {{0.5f,0.0f, 0.5f}, {0.f,1.f,0.f}, {uvScale.x,0.f}, {1.f, 0.f, 0.f}},
             };
             std::vector<uint32_t> indices{ 0, 1, 2, 2,3,0 };
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices} SRC_PASS);
+            return Construct<EWEModel>( vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
-        EWEModel* QuadPNU(lab::vec2 uvScale SRC_PARAM) {
+        EWEModel* QuadPNU(lab::vec2 uvScale) {
             std::vector<VertexNT> vertices{
                 {{0.5f,0.0f, -0.5f}, {0.f,1.f,0.f}, {uvScale.x,uvScale.y}},
                 {{-0.5f,0.0f, -0.5f}, {0.f,1.f,0.f}, {0.0f,uvScale.y}},
@@ -56,9 +56,9 @@ namespace EWE {
                 {{0.5f,0.0f, 0.5f}, {0.f,1.f,0.f}, {uvScale.x,0.f}},
             };
             std::vector<uint32_t> indices{ 0, 1, 2, 2,3,0 };
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices} SRC_PASS);
+            return Construct<EWEModel>( vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
-        EWEModel* Simple3DQuad(lab::vec2 uvScale SRC_PARAM) {
+        EWEModel* Simple3DQuad(lab::vec2 uvScale) {
             std::vector<EffectVertex> vertices{
                 {{0.5f,0.0f, -0.5f}, {uvScale.x,uvScale.y}},
                 {{-0.5f,0.0f, -0.5f}, {0.0f,uvScale.y}},
@@ -66,10 +66,10 @@ namespace EWE {
                 {{0.5f,0.0f, 0.5f}, {uvScale.x,0.f}},
             };
             std::vector<uint32_t> indices{ 0, 1, 2, 2, 3, 0 };
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices } SRC_PASS);
+            return Construct<EWEModel>( vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
 
-        EWEModel* TileQuad3D(lab::vec2 uvScale SRC_PARAM) {
+        EWEModel* TileQuad3D(lab::vec2 uvScale) {
             std::vector<TileVertex> vertices{
                 {{uvScale.x,uvScale.y}},
                 {{0.0f,uvScale.y}},
@@ -79,10 +79,10 @@ namespace EWE {
                 {{uvScale.x,uvScale.y}},
             };
             //std::vector<uint32_t> indices{};// 0, 1, 2, 2, 3, 0 };
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0])} SRC_PASS);
+            return Construct<EWEModel>(vertices.data(), vertices.size(), sizeof(vertices[0]));
         }
 
-        EWEModel* Grid2D(lab::vec2 scale SRC_PARAM) {
+        EWEModel* Grid2D(lab::vec2 scale) {
             const float leftX = -1.f * scale.x;
             const float rightX = 1.f * scale.x;
             const float topY = -1.f * scale.y;
@@ -97,9 +97,9 @@ namespace EWE {
                 {rightX, botY}
             };
             //std::vector<uint32_t> indices{ 0, 1, 2, 2, 3, 0 };
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0])} SRC_PASS);
+            return Construct<EWEModel>(vertices.data(), vertices.size(), sizeof(vertices[0]));
         }
-        EWEModel* Grid3DTrianglePrimitive(const uint32_t patchSize, const lab::vec2 uvScale SRC_PARAM) {
+        EWEModel* Grid3DTrianglePrimitive(const uint32_t patchSize, const lab::vec2 uvScale) {
             const uint32_t vertexCount = patchSize * patchSize;
             std::vector<VertexNT> vertices(vertexCount);
 
@@ -147,10 +147,10 @@ namespace EWE {
                 }
             }
 
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices } SRC_PASS);
+            return Construct<EWEModel>(vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
 
-        EWEModel* Grid3DQuadPrimitive(const uint32_t patchSize, const lab::vec2 uvScale SRC_PARAM){
+        EWEModel* Grid3DQuadPrimitive(const uint32_t patchSize, const lab::vec2 uvScale){
             
             const uint32_t vertexCount = patchSize * patchSize;
             std::vector<VertexNT> vertices(vertexCount);
@@ -185,10 +185,10 @@ namespace EWE {
                 }
             }
 
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices } SRC_PASS);
+            return Construct<EWEModel>( vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
 
-        EWEModel* Quad2D(lab::vec2 scale SRC_PARAM) {
+        EWEModel* Quad2D(lab::vec2 scale) {
             std::vector<VertexUI> vertices{
                 {{-0.5f, -0.5f}, {0.f, 0.f}},
                 {{0.5f, -0.5f}, {scale.x, 0.f}},
@@ -196,9 +196,9 @@ namespace EWE {
                 {{-0.5f, 0.5f}, {0.f, scale.y}}
             };
             std::vector<uint32_t> indices{ 0, 1, 2, 2, 3, 0 };
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices} SRC_PASS);
+            return Construct<EWEModel>(vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
-        EWEModel* NineUIQuad(SRC_FIRST_PARAM) {
+        EWEModel* NineUIQuad() {
             std::vector<VertexUI> vertices{
                 {{-0.5f, -0.5f}, {0.f, 0.f}}, //top left corner
                 {{-.5f, -.5f}, {.0625f, .0625f}}, //inner top left corner
@@ -215,9 +215,9 @@ namespace EWE {
             std::vector<uint32_t> indices{ 
                 1,0,6,  1,6,7,  1,7,3,  1,3,2,  1,2,0,  5,4,2,  5,2,3,  5,3,7,  5,7,6,  5,6,4 
             };
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices} SRC_PASS);
+            return Construct<EWEModel>(vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
-        EWEModel* SkyBox(float scale SRC_PARAM) {
+        EWEModel* SkyBox(float scale) {
             //hopefully never have to look at this again
 
             std::vector<SkyVertex> vertices = {
@@ -251,7 +251,7 @@ namespace EWE {
             }
 
             //printf("vertex size ? : %d \n", vertices.size());
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices} SRC_PASS);
+            return Construct<EWEModel>(vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
 
         VertexNT MidPoint(VertexNT const& vertex1, VertexNT const& vertex2) {
@@ -273,7 +273,7 @@ namespace EWE {
             return index;
         }
 
-        EWEModel* Sphere(uint8_t const subdivisions, float const radius SRC_PARAM) {
+        EWEModel* Sphere(uint8_t const subdivisions, float const radius) {
             const float t = 0.851f * radius;
             const float s = 0.526f * radius;
 
@@ -319,7 +319,7 @@ namespace EWE {
             //    std::swap(indices[i], indices[i + 2]);
             //}
 
-            return Construct<EWEModel>({ vertices.data(), vertices.size(), sizeof(vertices[0]), indices } SRC_PASS);
+            return Construct<EWEModel>(vertices.data(), vertices.size(), sizeof(vertices[0]), indices);
         }
         /*
         EWEModel* generateSimpleZedQuad(lab::vec2 uvScale = lab::vec2{ 1.f }) {

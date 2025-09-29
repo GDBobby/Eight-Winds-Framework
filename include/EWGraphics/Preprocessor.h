@@ -6,14 +6,11 @@
  //so im just replacing _DEBUG with EWE_DEBUG, supports release with debug too
 
 #if _WIN32
-    #ifdef _DEBUG
+    #ifdef EWE_DEBUG_DEF
         #define EWE_DEBUG true
     #else
         #define EWE_DEBUG false
     #endif
-#else //linux
-    //need to manually define it
-    #define EWE_DEBUG true
 #endif
 
 #define CALL_TRACING (true && EWE_DEBUG)
@@ -37,15 +34,13 @@
 #define USING_VMA true
 #define DEBUGGING_MEMORY_WITH_VMA (USING_VMA && false)
 
-#define SEMAPHORE_TRACKING (true && DEBUG_NAMING && EWE_DEBUG)
+#define SEMAPHORE_TRACKING (false && DEBUG_NAMING && EWE_DEBUG)
 
 //descriptor tracing requires C++23 and <stacktrace> stacktrace is not supported in clang20 (afaik)
 #define DESCRIPTOR_TRACING (false && EWE_DEBUG)
 
-#define COMMAND_BUFFER_TRACING (true && EWE_DEBUG)
+#define COMMAND_BUFFER_TRACING (false && EWE_DEBUG)
 #define DEBUGGING_FENCES (false && EWE_DEBUG)
-
-#define ONE_SUBMISSION_THREAD_PER_QUEUE false
 
 #define IMAGE_DEBUGGING (true && EWE_DEBUG)
 
@@ -76,19 +71,4 @@
     #else
         #define EWE_UNREACHABLE throw std::runtime_error("unreachable code")
     #endif
-#endif
-
-
-#if CALL_TRACING
-#define SRC_HEADER_FIRST_PARAM std::source_location srcLoc = std::source_location::current()
-#define SRC_HEADER_PARAM , SRC_HEADER_FIRST_PARAM
-#define SRC_FIRST_PARAM std::source_location srcLoc
-#define SRC_PARAM , SRC_FIRST_PARAM
-#define SRC_PASS , srcLoc
-#else
-#define SRC_HEADER_FIRST_PARAM
-#define SRC_HEADER_PARAM
-#define SRC_PARAM
-#define SRC_FIRST_PARAM
-#define SRC_PASS
 #endif

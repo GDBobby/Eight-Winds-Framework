@@ -1,7 +1,7 @@
 
 #include <EWGraphics/imgui/imGuiHandler.h>
 
-#include <EWGraphics/Vulkan/Pipeline.h>
+#include <EWGraphics/Vulkan/GraphicsPipeline.h>
 #include <EWGraphics/Data/ThreadPool.h>
 
 void check_vk_result(VkResult err) {
@@ -40,7 +40,8 @@ namespace EWE {
 		init_info.ImageCount = imageCount;
 		init_info.CheckVkResultFn = check_vk_result;
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-		init_info.PipelineRenderingCreateInfo = *EWEPipeline::PipelineConfigInfo::pipelineRenderingInfoStatic;
+		init_info.PipelineRenderingCreateInfo = *PipelineConfigInfo::pipelineRenderingInfoStatic;
+		init_info.DescriptorPool = EWEDescriptorPool::GetPool(DescriptorPool_imgui);
 		
 
 		//if an issue, address this first
@@ -70,12 +71,18 @@ namespace EWE {
 
 	void ImGUIHandler::beginRender() {
 		ImGui_ImplVulkan_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
+		ImGui_ImplGlfw_NewFrame(); //TEMPORARY DISABLING. if you get an error in endRender, uncomment this
 		ImGui::NewFrame();
 	}
 	void ImGUIHandler::endRender() {
+#if DEBUG_NAMING
+		DebugNaming::BeginLabel("imgui render", 1.f, 1.f, 1.f);
+#endif
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VK::Object->GetVKCommandBufferDirect());
+#if DEBUG_NAMING
+		DebugNaming::EndLabel();
+#endif
 	}
 
 

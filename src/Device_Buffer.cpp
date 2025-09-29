@@ -2,7 +2,6 @@
 
 // std
 #include <cassert>
-#include <cstring>
 
 namespace EWE {
 
@@ -16,7 +15,7 @@ namespace EWE {
      * @return VkResult of the buffer mapping call
      */
 
-    VkDeviceSize EWEBuffer::GetAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags) {
+    VkDeviceSize EWEBuffer::CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags) {
         VkDeviceSize minOffsetAlignment = 1;
         if (((usageFlags & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) == VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) ||
             ((usageFlags & VK_BUFFER_USAGE_INDEX_BUFFER_BIT) == VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
@@ -36,32 +35,14 @@ namespace EWE {
         }
         return instanceSize;
     }
-    VkDeviceSize EWEBuffer::GetAlignment(VkDeviceSize instanceSize) {
-
-        if (((usageFlags & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) == VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) ||
-            ((usageFlags & VK_BUFFER_USAGE_INDEX_BUFFER_BIT) == VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
-            ) {
-            minOffsetAlignment = 1;
-        }
-        else if (((usageFlags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) == VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)) {
-            minOffsetAlignment = VK::Object->properties.limits.minUniformBufferOffsetAlignment;
-            //printf("uniform buffer alignment : %zu\n", minOffsetAlignment);
-        }
-        else if (((usageFlags & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) == VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)) {
-            minOffsetAlignment = VK::Object->properties.limits.minStorageBufferOffsetAlignment;
-        }
-
-        if (minOffsetAlignment > 0) {
-            //printf("get alignment size : %zu \n", (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1));
-            return (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1);
-        }
-        return instanceSize;
+    VkDeviceSize EWEBuffer::GetAlignment() {
+        return alignmentSize;
     }
 
     EWEBuffer::EWEBuffer(VkDeviceSize instanceSize, uint32_t instanceCount, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags)
-        : usageFlags{usageFlags}, memoryPropertyFlags{memoryPropertyFlags} {
+        : usageFlags{ usageFlags }, memoryPropertyFlags{ memoryPropertyFlags } {
 
-        alignmentSize = GetAlignment(instanceSize);
+        alignmentSize = CalculateAlignment(instanceSize, usageFlags);
         bufferSize = alignmentSize * instanceCount;
         //printf("buffer size : %zu\n", bufferSize);
 #if USING_VMA
@@ -95,6 +76,10 @@ namespace EWE {
         }
         case VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: {
             vmaAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+            break;
+        }
+        case VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: {
+            vmaAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
             break;
         }
         }
@@ -133,7 +118,10 @@ namespace EWE {
 #endif
     }
     void EWEBuffer::Reconstruct(VkDeviceSize instanceSize, uint32_t instanceCount, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags) {
-        Unmap();
+        const bool wasMapped = mapped != nullptr;
+        if (mapped) {
+            Unmap();
+        }
 #if USING_VMA
         vmaDestroyBuffer(VK::Object->vmaAllocator, buffer_info.buffer, vmaAlloc);
 #else
@@ -144,7 +132,7 @@ namespace EWE {
         this->usageFlags = usageFlags;
         this->memoryPropertyFlags = memoryPropertyFlags;
 
-        alignmentSize = GetAlignment(instanceSize);
+        alignmentSize = CalculateAlignment(instanceSize, usageFlags);
         bufferSize = alignmentSize * instanceCount;
 #if USING_VMA
         VkBufferCreateInfo bufferInfo{};
@@ -181,7 +169,9 @@ namespace EWE {
 
         EWE_VK(vkBindBufferMemory, VK::Object->vkDevice, buffer_info.buffer, memory, 0);
 #endif
-        Map();
+        if (wasMapped) {
+            Map();
+        }
     }
 
 
@@ -203,7 +193,7 @@ namespace EWE {
 #endif
         EWE_VK(vkMapMemory, VK::Object->vkDevice, memory, offset, size, 0, &mapped);
 #endif
-//#endif
+        //#endif
     }
 
     /**
@@ -245,7 +235,7 @@ namespace EWE {
         memOffset += offset;
         memcpy(memOffset, data, size);
 
-        
+
     }
 
     void EWEBuffer::WriteToBuffer(void const* data, VkDeviceSize size, VkDeviceSize offset) {
@@ -259,7 +249,7 @@ namespace EWE {
         else {
 #if EWE_DEBUG
             if ((offset + size) > bufferSize) {
-                printf("overflow error in buffer - %zu:%zu \n", offset+size, bufferSize);
+                printf("overflow error in buffer - %zu:%zu \n", offset + size, bufferSize);
                 assert(false && "buffer overflow");
             }
 #endif
@@ -298,7 +288,7 @@ namespace EWE {
 #if USING_VMA
         EWE_VK(vmaFlushAllocation, VK::Object->vmaAllocator, vmaAlloc, trueOffset, minOffsetAlignment);
 #else
-        
+
         VkMappedMemoryRange mappedRange = {};
         mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         mappedRange.memory = memory;
@@ -389,25 +379,14 @@ namespace EWE {
         Invalidate(alignmentSize, index * alignmentSize);
     }
 
-#if CALL_TRACING
-    EWEBuffer* EWEBuffer::CreateAndInitBuffer(void* data, uint64_t dataSize, uint64_t dataCount, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, std::source_location srcLoc) {
-        EWEBuffer* retBuffer = Construct<EWEBuffer>({ dataSize * dataCount, 1, usageFlags, memoryPropertyFlags }, srcLoc);
+    EWEBuffer* EWEBuffer::CreateAndInitBuffer(void* data, uint64_t dataSize, uint64_t dataCount, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags) {
+        EWEBuffer* retBuffer = Construct<EWEBuffer>(dataSize * dataCount, 1, usageFlags, memoryPropertyFlags);
 
         retBuffer->Map();
         retBuffer->WriteToBuffer(data, dataSize * dataCount);
         retBuffer->Flush();
         return retBuffer;
     }
-#else
-    EWEBuffer* EWEBuffer::CreateAndInitBuffer(void* data, uint64_t dataSize, uint64_t dataCount, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags) {
-        EWEBuffer* retBuffer = Construct<EWEBuffer>({dataSize * dataCount, 1, usageFlags, memoryPropertyFlags });
-        
-        retBuffer->Map();
-        retBuffer->WriteToBuffer(data, dataSize * dataCount);
-        retBuffer->Flush();
-        return retBuffer;
-    }
-#endif
 
 #if DEBUG_NAMING
     void EWEBuffer::SetName(std::string const& name) {
@@ -418,7 +397,7 @@ namespace EWE {
         memoryName += ":memory";
 #if USING_VMA
         vmaSetAllocationName(VK::Object->vmaAllocator, vmaAlloc, memoryName.c_str());
-        
+
 #else
         DebugNaming::SetObjectName(memory, VK_OBJECT_TYPE_DEVICE_MEMORY, memoryName.c_str());
 #endif

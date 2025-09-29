@@ -11,8 +11,8 @@
 #if DEBUGGING_DEVICE_LOST
 #include "EWGraphics/Debug/VkDebugDeviceLost.h"
 #endif
-#if DEBUG_NAMING
 #include "EWGraphics/Vulkan/DebugNaming.h"
+#if DEBUG_NAMING
 #include <string>
 #endif
 
@@ -54,8 +54,8 @@ namespace EWE{
 #if COMMAND_BUFFER_TRACING
         struct Tracking {
             std::string funcName;
-            std::source_location srcLoc;
-            Tracking(std::string const& funcName, std::source_location const& srcLoc) : funcName{ funcName }, srcLoc{ srcLoc } {}
+            std::stacktrace stackTrace;
+            Tracking(std::string const& funcName) : funcName{ funcName } { printf("need to set up stack trace here\n"); }
         };
         std::queue<std::vector<Tracking>> usageTracking;
 
@@ -83,9 +83,6 @@ namespace EWE{
     struct ThreadedSingleTimeCommands {
         std::array<VkCommandPool, Queue::_count> commandPools{VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE};
         std::array<std::vector<CommandBuffer>, Queue::_count> cmdBufs;
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-        std::mutex poolMutex{};
-#endif
     };
 
 
@@ -129,20 +126,25 @@ namespace EWE{
         VkSurfaceKHR surface;
         VkPhysicalDeviceProperties properties;
         VkPhysicalDeviceMeshShaderPropertiesEXT* meshShaderProperties{ nullptr };
+        VkDescriptorSetLayout globalEmptyDSL = VK_NULL_HANDLE;
 
         float screenWidth;
         float screenHeight;
+        VkViewport viewport{};
+        VkRect2D scissor{};
+        void BindVPScissor() const;
 
         uint8_t frameIndex{0};
 
         std::array<CommandBuffer, MAX_FRAMES_IN_FLIGHT> renderCommands{};
+
+        std::size_t totalFrameCount = 0;//frames rendered since launch. updated in SyncHub::PresentKHR
 
         VkCommandBuffer& GetVKCommandBufferDirect() {
             return renderCommands[frameIndex].cmdBuf;
         }
 
         CommandBuffer& GetFrameBuffer() {
-
             return renderCommands[frameIndex];
         }
 #if USING_VMA
@@ -179,8 +181,6 @@ namespace EWE{
         void Unmap();
     };
 
-
-
 } //namespace EWE
 
 
@@ -193,32 +193,29 @@ namespace EWE{
 #define WRAPPING_VULKAN_FUNCTIONS false
 
 #if CALL_TRACING
-void EWE_VK_RESULT(VkResult vkResult, const std::source_location& sourceLocation = std::source_location::current());
+void EWE_VK_RESULT(VkResult vkResult);
 
 #if COMMAND_BUFFER_TRACING
 namespace Recasting {
 
 
     template<typename Arg>
-    auto ArgumentCasting(std::string const& funcName, std::source_location const& sourceLocation, Arg&& arg) {
+    auto ArgumentCasting(std::string const& funcName, Arg&& arg) {
 
         static_assert(!std::is_same_v<Arg, VkCommandBuffer>);
 
-        if constexpr (requires{arg.usageTracking.back().emplace_back(funcName, sourceLocation); }) {
-            //if (arg.usageTracking.size() == 0) {
-            //    arg.usageTracking.emplace_back();
-            //}
+        if constexpr (requires{arg.usageTracking.back().emplace_back(funcName); }) {
             if (arg.usageTracking.size() > 0) {
-                arg.usageTracking.back().emplace_back(funcName, sourceLocation);
+                arg.usageTracking.back().emplace_back(funcName);
             }
             return std::forward<VkCommandBuffer>(arg.cmdBuf);
         }
-        else if constexpr (requires{arg->usageTracking.back().emplace_back(funcName, sourceLocation); }) {
+        else if constexpr (requires{arg->usageTracking.back().emplace_back(funcName); }) {
             //if (arg->usageTracking.size() == 0) {
             //    arg->usageTracking.emplace_back();
             //}
             if (arg->usageTracking.size() > 0) {
-                arg->usageTracking.back().emplace_back(funcName, sourceLocation);
+                arg->usageTracking.back().emplace_back(funcName);
             }
             return std::forward<VkCommandBuffer*>(&arg->cmdBuf);
         }
@@ -229,8 +226,8 @@ namespace Recasting {
     }
 
     template<typename... Args>
-    auto ReinterpretArguments(std::string const& funcName, std::source_location const& sourceLocation, Args&&... args) {
-        return std::make_tuple(ArgumentCasting(funcName, sourceLocation, std::forward<Args>(args))...);
+    auto ReinterpretArguments(std::string const& funcName, Args&&... args) {
+        return std::make_tuple(ArgumentCasting(funcName, std::forward<Args>(args))...);
     }
     template<size_t N>
     struct Apply {
@@ -256,7 +253,7 @@ namespace Recasting {
     }
 
     template<typename F, typename... Args>
-    void CallWithReinterpretedArguments(std::source_location srcLoc, F&& func, std::tuple<Args...>&& tuple) {
+    void CallWithReinterpretedArguments(F&& func, std::tuple<Args...>&& tuple) {
 
         if constexpr (std::is_void_v<decltype(ApplyFunc(func, tuple))>) {
             //std::invoke(std::forward<F>(func), std::get<Args>(tuple)...);
@@ -265,7 +262,7 @@ namespace Recasting {
         else {
             //VkResult vkResult = std::invoke(std::forward<F>(func), std::get<Args>(tuple)...);
             VkResult vkResult = ApplyFunc(func, tuple);
-            EWE_VK_RESULT(vkResult, srcLoc);
+            EWE_VK_RESULT(vkResult);
         }
     }
 }
@@ -281,7 +278,7 @@ namespace EWE {
 //if having difficulty with template errors related to this function, define the vulkan function by itself before using this function to ensure its correct
 template<typename F, typename... Args>
 struct EWE_VK {
-    EWE_VK(F&& func, Args&&... args, std::source_location const& sourceLocation = std::source_location::current()) {
+    EWE_VK(F&& func, Args&&... args) {
 #if WRAPPING_VULKAN_FUNCTIONS
         //call a preliminary function
 #endif
@@ -294,11 +291,6 @@ struct EWE_VK {
             }
         }
 #endif
-#if USING_VMA
-        if constexpr (std::is_same_v<std::decay_t<F>, PFN_vkAllocateMemory>) {
-            printf("using allocate memory iwth vma\n");
-        }
-#endif
 
 #if COMMAND_BUFFER_TRACING
 #ifdef _WIN32
@@ -306,8 +298,8 @@ struct EWE_VK {
 #else
         const std::string funcName = "NSOL"; //not supported on linux YET
 #endif
-        auto reinterpretedArgs = Recasting::ReinterpretArguments(funcName, sourceLocation, std::forward<Args>(args)...);
-        Recasting::CallWithReinterpretedArguments(sourceLocation, func, std::move(reinterpretedArgs));
+        auto reinterpretedArgs = Recasting::ReinterpretArguments(funcName, std::forward<Args>(args)...);
+        Recasting::CallWithReinterpretedArguments(func, std::move(reinterpretedArgs));
 #else
         if constexpr (std::is_void_v<decltype(std::forward<F>(func)(std::forward<Args>(args)...))>) {
             //std::bind(std::forward<F>(f), std::forward<Args>(args)...)(); //std bind is constexpr, might be worth using
@@ -315,7 +307,7 @@ struct EWE_VK {
         }
         else {
             VkResult vkResult = std::invoke(std::forward<F>(func), std::forward<Args>(args)...);
-            EWE_VK_RESULT(vkResult, sourceLocation);
+            EWE_VK_RESULT(vkResult);
 
         }
 #endif

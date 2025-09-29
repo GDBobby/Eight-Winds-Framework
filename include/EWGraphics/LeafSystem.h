@@ -16,7 +16,7 @@
 
 
 namespace EWE {
-	class LeafSystem : private PipelineSystem {
+	class LeafSystem {
 	private:
 		const int LEAF_COUNT = 250;
 		const float WIND_SPEED{4.f};
@@ -50,7 +50,7 @@ namespace EWE {
 		//helix -> ellRatio~1  rotRatio~1
 		//spiral -> elLRatio~0 rotRatio~4
 		LeafSystem();
-		~LeafSystem() override;
+		~LeafSystem();
 
 		void LeafPhysicsInitialization();
 		void FallCalculation(float timeStep);
@@ -64,12 +64,9 @@ namespace EWE {
 
 		void Render();
 
-
-	protected:
-		void CreatePipeline() final;
-		void CreatePipeLayout() final;
-
 	private:
+		void CreatePipeline();
+
 		std::random_device ranDev;
 		std::mt19937 randomGen;
 		std::uniform_real_distribution<float> ellipseRatioDistribution;
@@ -88,10 +85,6 @@ namespace EWE {
 
 
 		const float gravity = -1.06566f;
-		//float FrictionPerp = 5.f;
-		//float leafWeight = 1.f; //grams
-		//float leafDensity = 0.1f;
-		//float leafKA = 4.f;
 
 		std::vector<LeafStruct> leafs{};
 
@@ -103,7 +96,7 @@ namespace EWE {
 		ImageID leafImgID{IMAGE_INVALID};
 		std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> leafDescriptor{};
 
-		EWEDescriptorSetLayout* leafEDSL{};
+		Pipeline* pipeline;
 
 		/*
 		//POSITION:

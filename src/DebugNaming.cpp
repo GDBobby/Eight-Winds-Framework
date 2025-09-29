@@ -5,8 +5,8 @@
 #include <cassert>
 
 namespace EWE{
-#if DEBUG_NAMING
     namespace DebugNaming{
+#if DEBUG_NAMING
         PFN_vkQueueBeginDebugUtilsLabelEXT pfnQueueBegin;
         PFN_vkQueueEndDebugUtilsLabelEXT pfnQueueEnd;
         PFN_vkSetDebugUtilsObjectNameEXT pfnSetObjectName;
@@ -34,7 +34,9 @@ namespace EWE{
                 
             }
         }
+#endif
         void QueueBegin(uint8_t queue, float red, float green, float blue, const char* name) {
+#if DEBUG_NAMING
             VkDebugUtilsLabelEXT utilLabel{};
             utilLabel.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
             utilLabel.pNext = nullptr;
@@ -46,15 +48,18 @@ namespace EWE{
             VK::Object->queueMutex[queue].lock();
             pfnQueueBegin(VK::Object->queues[queue], &utilLabel);
             VK::Object->queueMutex[queue].unlock();
+#endif
         }
         void QueueEnd(uint8_t queue) {
+#if DEBUG_NAMING
             VK::Object->queueMutex[queue].lock();
             pfnQueueEnd(VK::Object->queues[queue]);
             VK::Object->queueMutex[queue].unlock();
+#endif
         }
 
         void BeginLabel(const char* name, float red, float green, float blue) {
-
+#if DEBUG_NAMING
             VkDebugUtilsLabelEXT utilLabel{};
             utilLabel.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
             utilLabel.pNext = nullptr;
@@ -64,14 +69,18 @@ namespace EWE{
             utilLabel.color[3] = 1.f;
             utilLabel.pLabelName = name;
             EWE_VK(pfnBeginLabel, VK::Object->GetFrameBuffer(), &utilLabel);
+#endif
         }
         void EndLabel() {
+#if DEBUG_NAMING
             EWE_VK(pfnEndLabel, VK::Object->GetFrameBuffer());
+#endif
         }
 
         void Deconstruct(){}
 
         void SetObjectName(void* object, VkObjectType objectType, const char* name) {
+#if DEBUG_NAMING
             // Check for a valid function pointer
             if (enabled) {
                 VkDebugUtilsObjectNameInfoEXT nameInfo{};
@@ -84,8 +93,8 @@ namespace EWE{
                 pfnSetObjectName(VK::Object->vkDevice, &nameInfo);
 
             }
+#endif
         }
 
     } //namespace DebugNaming
-#endif
 } //namespace EWE

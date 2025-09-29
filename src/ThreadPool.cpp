@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#define DEBUGGING_THREADS true
+#define DEBUGGING_THREADS false
 
 #if THREAD_NAMING
 #if WIN32
@@ -65,11 +65,13 @@ namespace EWE {
                     const std::thread::id myThreadID = std::this_thread::get_id();
                     myThreadIndex = threadSize;
 
-                    threadSpecificTasks.Lock();
-                    localThreadTasks = &threadSpecificTasks.Add(myThreadID);
-                    threadSpecificTasks.Unlock();
+                    //threadSpecificTasks.Lock();
+                    threadSpecificTaskMutex.lock();
+                    localThreadTasks = &threadSpecificTasks.emplace_back(myThreadID);
+                    threadSpecificTaskMutex.unlock();
+                    //threadSpecificTasks.Unlock();
 
-                    threadSpecificMutex.Add(myThreadID, localThreadMutex);
+                    threadSpecificMutex.push_back(myThreadID, localThreadMutex);
 
                     while (true) {
                         while (localThreadTasks->size() != 0) {
@@ -221,9 +223,10 @@ namespace EWE {
     void ThreadPool::GiveTaskToAThread(std::thread::id id, std::function<void()> task) {
         std::mutex* threadMut = threadSpecificMutex.GetValue(id);
         threadMut->lock();
-        threadSpecificTasks.Lock();
+        //threadSpecificTasks.Lock();
+        threadSpecificTaskMutex.lock();
         threadSpecificTasks.GetValue(id).push(task);
-        threadSpecificTasks.Unlock();
+        threadSpecificTaskMutex.unlock();
         threadMut->unlock();
     }
 }//namespace EWE

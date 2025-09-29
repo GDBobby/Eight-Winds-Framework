@@ -3846,8 +3846,7 @@ const VmaBufferImageUsage VmaBufferImageUsage::UNKNOWN = VmaBufferImageUsage(0);
 
 static void swap(VmaBufferImageUsage& lhs, VmaBufferImageUsage& rhs) noexcept
 {
-    using std::swap;
-    swap(lhs.Value, rhs.Value);
+    std::swap(lhs.Value, rhs.Value);
 }
 
 VmaBufferImageUsage::VmaBufferImageUsage(const VkBufferCreateInfo& createInfo,

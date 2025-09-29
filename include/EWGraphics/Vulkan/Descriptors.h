@@ -14,7 +14,7 @@ namespace EWE {
 
     static int64_t activeDescriptors = 0;
 
-    class EWEDescriptorSetLayout {
+    class DescriptorSetLayout {
     public:
         class Builder {
         public:
@@ -23,60 +23,49 @@ namespace EWE {
             Builder& AddBinding(VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t count = 1);
             Builder& AddGlobalBindingForCompute();
             Builder& AddGlobalBindings();
-#if EWE_DEBUG
-            EWEDescriptorSetLayout* Build(std::source_location = std::source_location::current());
-#else
-            EWEDescriptorSetLayout* Build();
-#endif
-            EWEDescriptorSetLayout BuildInPlace();
+            DescriptorSetLayout* Build();
+            DescriptorSetLayout* BuildBindless();
+
+            //the vkDSL wont be built automatically, DescriptorSetLayout::BuildVkDSL needs to be called explicitly
+            DescriptorSetLayout BuildInPlace(); 
         private:
             std::vector<VkDescriptorSetLayoutBinding> bindings{};
         };
+       
+        DescriptorSetLayout();
+        DescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding>& bindings, bool bindless = false);
+        DescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> const& bindings, bool bindless = false);
+        ~DescriptorSetLayout();
+        DescriptorSetLayout(const DescriptorSetLayout&) = delete;
+        DescriptorSetLayout& operator=(const DescriptorSetLayout&) = delete;
 
-        EWEDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding>& bindings);
-        EWEDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> const& bindings);
-        ~EWEDescriptorSetLayout();
-        EWEDescriptorSetLayout(const EWEDescriptorSetLayout&) = delete;
-        EWEDescriptorSetLayout& operator=(const EWEDescriptorSetLayout&) = delete;
+        void BuildVkDSL();
 
-        [[nodiscard]] VkDescriptorSetLayout* GetDescriptorSetLayout() { return &descriptorSetLayout; }
-        std::vector<VkDescriptorSetLayoutBinding> const& GetBindings() { //read only
-            return bindings;
+        VkDescriptorSetLayout vkDSL;
+        operator VkDescriptorSetLayout() const {
+            return vkDSL;
         }
-    private:
-        VkDescriptorSetLayout descriptorSetLayout;
         std::vector<VkDescriptorSetLayoutBinding> bindings;
-
-        friend class EWEDescriptorWriter;
-        friend class EWEDescriptorPool;
+        const bool bindless;
     };
 
-    class ShaderDescriptorSets{
+    class DescriptorLayoutPack{
         public:
-        class Builder {
-        public:
-            Builder();
-            Builder& BeginSet();
+        DescriptorLayoutPack() {}
+        DescriptorLayoutPack(std::vector<std::vector<VkDescriptorSetLayoutBinding>> const& sets);
+        DescriptorLayoutPack(DescriptorLayoutPack const&) = delete;
+        DescriptorLayoutPack& operator=(DescriptorLayoutPack const&) = delete;
+        DescriptorLayoutPack(DescriptorLayoutPack&&) noexcept;
+        DescriptorLayoutPack& operator=(DescriptorLayoutPack&&) = delete;
+        ~DescriptorLayoutPack();
 
-            Builder& AddBinding(VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t count = 1);
-            ShaderDescriptorSets* Build();
+        [[nodiscard]] VkDescriptorSetLayout* GetDescriptorSetLayout(uint8_t index);
 
-        private:
-            std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindings{};
-        };
-        ShaderDescriptorSets(std::vector<std::vector<VkDescriptorSetLayoutBinding>> const& bindings);
-        ShaderDescriptorSets(ShaderDescriptorSets const&) = delete;
-        ShaderDescriptorSets& operator=(ShaderDescriptorSets const&) = delete;
-        ShaderDescriptorSets(ShaderDescriptorSets&&);
-        ShaderDescriptorSets& operator=(ShaderDescriptorSets&&);
-
-        [[nodiscard]] VkDescriptorSetLayout* GetDescriptorSetLayout(uint8_t index) { return descriptorSetLayouts[index].GetDescriptorSetLayout(); }
-
-        EWEDescriptorSetLayout* descriptorSetLayouts{}; //array
+        KeyValueContainer<uint8_t, DescriptorSetLayout*> setLayouts{};
     };
     
-
-    enum DescriptorPool_ID : uint16_t {
+    typedef uint16_t DescriptorPool_ID;
+    enum Engine_DescriptorPools : DescriptorPool_ID {
         DescriptorPool_Global = 0,
         DescriptorPool_imgui = 1,
         //DescriptorPool_Compute = 1, //i dont even think im using this
@@ -91,11 +80,7 @@ namespace EWE {
             Builder& AddPoolSize(VkDescriptorType descriptorType, uint32_t count);
             Builder& SetPoolFlags(VkDescriptorPoolCreateFlags flags);
             Builder& SetMaxSets(uint32_t count);
-#if EWE_DEBUG
-            EWEDescriptorPool* Build(std::source_location srcLoc = std::source_location::current()) const;
-#else
             EWEDescriptorPool* Build() const;
-#endif
 
         private:
             std::vector<VkDescriptorPoolSize> poolSizes{};
@@ -111,12 +96,12 @@ namespace EWE {
 
         static void AllocateDescriptor(DescriptorPool_ID poolID, const VkDescriptorSetLayout descriptorSetLayout, VkDescriptorSet& descriptor);
         void AllocateDescriptor(const VkDescriptorSetLayout* descriptorSetLayout, VkDescriptorSet& descriptor);
-        void AllocateDescriptor(EWEDescriptorSetLayout* eDSL, VkDescriptorSet& descriptor);
+        void AllocateDescriptor(DescriptorSetLayout* eDSL, VkDescriptorSet& descriptor);
 
-        static void FreeDescriptors(DescriptorPool_ID poolID, EWEDescriptorSetLayout* eDSL, std::vector<VkDescriptorSet>& descriptors);
-        void FreeDescriptors(EWEDescriptorSetLayout* eDSL, std::vector<VkDescriptorSet>& descriptors);
-        static void FreeDescriptor(DescriptorPool_ID poolID, EWEDescriptorSetLayout* eDSL, const VkDescriptorSet* descriptors);
-        void FreeDescriptor(EWEDescriptorSetLayout* eDSL, const VkDescriptorSet* descriptor);
+        static void FreeDescriptors(DescriptorPool_ID poolID, DescriptorSetLayout* eDSL, std::vector<VkDescriptorSet>& descriptors);
+        void FreeDescriptors(DescriptorSetLayout* eDSL, std::vector<VkDescriptorSet>& descriptors);
+        static void FreeDescriptor(DescriptorPool_ID poolID, DescriptorSetLayout* eDSL, const VkDescriptorSet* descriptors);
+        void FreeDescriptor(DescriptorSetLayout* eDSL, const VkDescriptorSet* descriptor);
 
         static void FreeDescriptorWithoutTracker(DescriptorPool_ID poolID, const VkDescriptorSet* descriptors);
         void FreeDescriptorWithoutTracker(const VkDescriptorSet* descriptor);
@@ -169,8 +154,8 @@ namespace EWE {
 
     class EWEDescriptorWriter {
     public:
-        EWEDescriptorWriter(EWEDescriptorSetLayout* setLayout, EWEDescriptorPool& pool);
-        EWEDescriptorWriter(EWEDescriptorSetLayout* setLayout, DescriptorPool_ID poolID);
+        EWEDescriptorWriter(DescriptorSetLayout* setLayout, EWEDescriptorPool& pool);
+        EWEDescriptorWriter(DescriptorSetLayout* setLayout, DescriptorPool_ID poolID);
 
         EWEDescriptorWriter& WriteBuffer(VkDescriptorBufferInfo* bufferInfo);
         EWEDescriptorWriter& WriteImage(VkDescriptorImageInfo* imgInfo);
@@ -180,7 +165,7 @@ namespace EWE {
 
     private:
         VkDescriptorSet BuildPrint();
-        EWEDescriptorSetLayout* setLayout;
+        DescriptorSetLayout* setLayout;
         EWEDescriptorPool& pool;
         std::vector<VkWriteDescriptorSet> writes;
     };

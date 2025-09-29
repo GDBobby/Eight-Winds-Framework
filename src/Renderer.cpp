@@ -9,14 +9,6 @@
 #include <iomanip>
 
 namespace EWE {
-	void EWERenderer::BindGraphicsPipeline(VkPipeline graphicsPipeline) {
-		assert(instance != nullptr);
-
-		EWE_VK(vkCmdBindPipeline, VK::Object->GetFrameBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-		EWE_VK(vkCmdSetViewport, VK::Object->GetFrameBuffer(), 0, 1, &instance->viewport);
-		EWE_VK(vkCmdSetScissor, VK::Object->GetFrameBuffer(), 0, 1, &instance->scissor);
-	}
-
 
 
 	EWERenderer* EWERenderer::instance{ nullptr };
@@ -67,14 +59,14 @@ namespace EWE {
 			assert(oldSwapChain->CompareSwapFormats(*eweSwapChain.get()) && "Swap chain image(or depth) format has changed!");
 		}
 
-
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(eweSwapChain->GetSwapChainExtent().width);
-		viewport.height = static_cast<float>(eweSwapChain->GetSwapChainExtent().height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		scissor = { {0, 0}, eweSwapChain->GetSwapChainExtent() };
+		
+		VK::Object->viewport.x = 0.0f;
+		VK::Object->viewport.y = static_cast<float>(eweSwapChain->GetSwapChainExtent().height);;
+		VK::Object->viewport.width = static_cast<float>(eweSwapChain->GetSwapChainExtent().width);
+		VK::Object->viewport.height = -VK::Object->viewport.y;
+		VK::Object->viewport.minDepth = 0.0f;
+		VK::Object->viewport.maxDepth = 1.0f;
+		VK::Object->scissor = { {0, 0}, eweSwapChain->GetSwapChainExtent() };
 	}
 
 	bool EWERenderer::BeginFrame() {

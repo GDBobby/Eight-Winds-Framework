@@ -3,7 +3,6 @@
 #include "vulkan/vulkan.h"
 #include "EWGraphics/Preprocessor.h"
 
-#if DEBUG_NAMING
 namespace EWE{
 	namespace DebugNaming {
 		void QueueBegin(uint8_t queue, float red, float green, float blue, const char* name);
@@ -19,5 +18,4 @@ namespace EWE{
 
 	} //namespace DebugNaming
 } //namespace EWE
-#endif
 

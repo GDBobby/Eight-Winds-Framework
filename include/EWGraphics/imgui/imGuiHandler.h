@@ -38,10 +38,6 @@ namespace EWE {
 		void beginRender();
 		void endRender();
 
-		void rebuild() {
-			//ImGui_ImplVulkanH_CreateWindow(device.getInstance(), device.getPhysicalDevice(), EWEDevice::GetVkDevice(), &g_MainWindowData, g_QueueFamily, nullptr, g_SwapChainResizeWidth, g_SwapChainResizeHeight, g_MinImageCount);
-		}
-
 
 		void AddEngineGraph();
 		bool logicThreadEnabled = false;

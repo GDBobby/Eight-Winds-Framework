@@ -64,7 +64,7 @@ namespace EWE {
         //ImageTracker* imageTracker = reinterpret_cast<ImageTracker*>(imgMgrPtr->imageTrackerBucket.GetDataChunk());
 
         //new(imageTracker) ImageTracker(path, mipmap, zeroUsageDelete);
-        ImageTracker* imageTracker = Construct<ImageTracker>({ path, mipmap, zeroUsageDelete });
+        ImageTracker* imageTracker = Construct<ImageTracker>( path, mipmap, zeroUsageDelete );
         std::unique_lock<std::mutex> uniq_lock(imgMgrPtr->imageMutex);
         imgMgrPtr->imageTrackerIDMap.try_emplace(imgMgrPtr->currentImageCount, imageTracker);
         return imgMgrPtr->currentImageCount++;
@@ -73,7 +73,7 @@ namespace EWE {
         //ImageTracker* imageTracker = reinterpret_cast<ImageTracker*>(imgMgrPtr->imageTrackerBucket.GetDataChunk());
 
         //new(imageTracker) ImageTracker(path, mipmap, zeroUsageDelete);
-        ImageTracker* imageTracker = Construct<ImageTracker>({ path, sampler, mipmap, zeroUsageDelete });
+        ImageTracker* imageTracker = Construct<ImageTracker>( path, sampler, mipmap, zeroUsageDelete );
 
         std::unique_lock<std::mutex> uniq_lock(imgMgrPtr->imageMutex);
         imgMgrPtr->imageTrackerIDMap.try_emplace(imgMgrPtr->currentImageCount, imageTracker);
@@ -82,7 +82,7 @@ namespace EWE {
     ImageID Image_Manager::ConstructImageTracker(std::string const& path, ImageInfo& imageInfo, bool zeroUsageDelete) {
         //ImageTracker* imageTracker = reinterpret_cast<ImageTracker*>(imgMgrPtr->imageTrackerBucket.GetDataChunk());
         //new(imageTracker) ImageTracker(imageInfo, zeroUsageDelete);
-        ImageTracker* imageTracker = Construct<ImageTracker>({ imageInfo, zeroUsageDelete });
+        ImageTracker* imageTracker = Construct<ImageTracker>( imageInfo, zeroUsageDelete );
 
         std::unique_lock<std::mutex> uniq_lock(imgMgrPtr->imageMutex);
         imgMgrPtr->imageTrackerIDMap.try_emplace(imgMgrPtr->currentImageCount, imageTracker);
@@ -93,7 +93,7 @@ namespace EWE {
 
         //ImageTracker* imageTracker = reinterpret_cast<ImageTracker*>(imgMgrPtr->imageTrackerBucket.GetDataChunk());
         //new(imageTracker) ImageTracker(zeroUsageDelete);
-        ImageTracker* imageTracker = Construct<ImageTracker>({ zeroUsageDelete });
+        ImageTracker* imageTracker = Construct<ImageTracker>( zeroUsageDelete );
 
         std::unique_lock<std::mutex> uniq_lock(imgMgrPtr->imageMutex);
         const ImageID tempID = imgMgrPtr->currentImageCount++;
@@ -103,7 +103,7 @@ namespace EWE {
 
     ImageID Image_Manager::CreateImageArray(std::vector<PixelPeek> const& pixelPeeks, bool mipmapping) {
 
-        ImageTracker* imageTracker = Construct<ImageTracker>({});
+        ImageTracker* imageTracker = Construct<ImageTracker>();
         ImageInfo* arrayImageInfo = &imageTracker->imageInfo;
 #if EWE_DEBUG
         //printf("before ui image\n");
@@ -174,7 +174,7 @@ namespace EWE {
         const uint32_t pixelCount = layerWidth * layerHeight;
         const std::size_t layerSize = pixelCount * layerHeight;
 
-        ImageTracker* imageTracker = Construct<ImageTracker>({});
+        ImageTracker* imageTracker = Construct<ImageTracker>();
         ImageInfo* arrayImageInfo = &imageTracker->imageInfo;
         if (VK::Object->CheckMainThread()) {
             arrayImageInfo->descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -189,7 +189,7 @@ namespace EWE {
         arrayImageInfo->arrayLayers = imageCount;
 
         const std::size_t totalSize = firstImage.width * firstImage.height * channelCount;
-        StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ totalSize });
+        StagingBuffer* stagingBuffer = Construct<StagingBuffer>( totalSize );
 
         void* data; //void* normally, but I want to be able to control it by the byte
         stagingBuffer->Map(data);
@@ -286,12 +286,12 @@ namespace EWE {
         return foundImage->second;
     }
 
-    EWEDescriptorSetLayout* Image_Manager::GetSimpleTextureDSL(VkShaderStageFlags stageFlags) {
-        EWEDescriptorSetLayout* simpleTextureDSL;
+    DescriptorSetLayout* Image_Manager::GetSimpleTextureDSL(VkShaderStageFlags stageFlags) {
+        DescriptorSetLayout* simpleTextureDSL;
         std::unique_lock<std::mutex> uniq_lock(imgMgrPtr->imageMutex);
         auto findRet = imgMgrPtr->simpleTextureLayouts.find(stageFlags);
         if (findRet == imgMgrPtr->simpleTextureLayouts.end()) {
-            EWEDescriptorSetLayout::Builder builder{};
+            DescriptorSetLayout::Builder builder{};
             builder.AddBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags);
             simpleTextureDSL = builder.Build();
             imgMgrPtr->simpleTextureLayouts.emplace(stageFlags, simpleTextureDSL);

@@ -2,7 +2,6 @@
 
 #include "EWGraphics/Vulkan/QueueSyncPool.h"
 #include "EWGraphics/Data/EWE_Memory.h"
-#include "EWGraphics/Vulkan/TransferCommandManager.h"
 
 #include <mutex>
 #include <condition_variable>
@@ -21,12 +20,6 @@ namespace EWE {
 		static SyncHub* syncHubSingleton;
 
 		QueueSyncPool qSyncPool;
-
-
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-		VkSubmitInfo transferSubmitInfo{};
-		std::mutex transferSubmissionMut{};
-#endif
 
 		RenderSyncData renderSyncData;
 
@@ -70,11 +63,7 @@ namespace EWE {
 		//these have a fence with themselves
 		void EndSingleTimeCommandGraphics(GraphicsCommand& graphicsCommand);
 
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-		void EndSingleTimeCommandTransfer();
-#else
 		void EndSingleTimeCommandTransfer(TransferCommand& transferCommand);
-#endif
 
 		CommandBuffer& BeginSingleTimeCommand();
 		CommandBuffer& BeginSingleTimeCommandGraphics();
@@ -85,15 +74,6 @@ namespace EWE {
 		}
 
 		void RunGraphicsCallbacks();
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-		bool CheckFencesForUsage() {
-			return qSyncPool.CheckFencesForUsage();
-		}
-#endif
-
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-		void SubmitTransferBuffers();
-#endif
 	private:
 
 		void CreateBuffers();

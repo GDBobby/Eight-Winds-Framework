@@ -19,13 +19,14 @@ namespace EWE {
 		MemoryTypeBucket(std::size_t elementSize) : elementSize{ elementSize } {
 			reservedMemory = nullptr;// Internal::ewe_alloc(elementSize, dataChunkTracker.size());
 			//reservedMemory = malloc(elementSize * dataChunkTracker.size());
+			assert(false);//temporarily disabled
 		}
 
 		~MemoryTypeBucket() {
 #if EWE_DEBUG
 			assert(!dataChunkTracker.any() && "improper memory bucket deconstruction");
 #endif
-			Internal::ewe_free(reservedMemory);
+			//Internal::ewe_free(reservedMemory); <-- this needs to be replaced, then memorytypebucket can be re-enabled
 		}
 
 		std::size_t GetRemainingSpace() {

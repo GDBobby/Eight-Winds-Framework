@@ -1,26 +1,45 @@
 #include "EWGraphics/Vulkan/ComputePipeline.h"
 
+#if PIPELINE_HOT_RELOAD
+#include "EWGraphics/imgui/imgui.h"
+#endif
+
 namespace EWE{
-    void ComputePipeline::BindDescriptor(uint8_t binding, VkDescriptorSet* descSet) const {
-        EWE_VK(vkCmdBindDescriptorSets,
-            VK::Object->GetFrameBuffer(),
-            VK_PIPELINE_BIND_POINT_COMPUTE,
-            pipeLayout, 
-            binding, 1, 
-            descSet,
-            0, nullptr
-        );
-    }
 
-    void ComputePipeline::Push(void* pushData) const {
-        EWE_VK(vkCmdPushConstants, VK::Object->GetFrameBuffer(), pipeLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, static_cast<uint32_t>(sizeof(pushData)), pushData);
-    }
+	void ComputePipeline::CreateVkPipeline() {
+		VkComputePipelineCreateInfo pipelineInfo{};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		pipelineInfo.pNext = nullptr;
+		pipelineInfo.layout = pipeLayout->vkLayout;
+		pipelineInfo.stage = pipeLayout->shaders[ShaderStage::Compute]->shaderStageCreateInfo;
 
-    void ComputePipeline::BindPipeline() const {
-        EWE_VK(vkCmdBindPipeline, VK::Object->GetFrameBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-    }
+		Shader::VkSpecInfo_RAII temp{ copySpecInfo[0].value };
+		pipelineInfo.stage.pSpecializationInfo = &temp.specInfo;
+		EWE_VK(vkCreateComputePipelines, EWE::VK::Object->vkDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &vkPipe);
 
-    void ComputePipeline::Dispatch(uint16_t x, uint16_t y, uint16_t z) const {
-        EWE_VK(vkCmdDispatch, VK::Object->GetFrameBuffer(), x, y, z);
-    }
+	}
+
+	ComputePipeline::ComputePipeline(PipelineID pipeID, PipeLayout* layout) 
+		: Pipeline{ pipeID, layout }
+	{
+		this->pipeLayout = layout;
+		CreateVkPipeline();
+	}
+
+	ComputePipeline::ComputePipeline(PipelineID pipeID, PipeLayout* layout, std::vector<Shader::SpecializationEntry> const& specInfo) : 
+		Pipeline{ pipeID, layout, std::vector<KeyValuePair<ShaderStage, std::vector<Shader::SpecializationEntry>>>{KeyValuePair<ShaderStage, std::vector<Shader::SpecializationEntry>>(ShaderStage::Compute, specInfo)} }
+	{
+		this->pipeLayout = layout;
+		CreateVkPipeline();
+	}
+
+#if PIPELINE_HOT_RELOAD
+	void ComputePipeline::HotReload(bool layoutReload) {
+		//layout should ALWAYS be reloaded
+		pipeLayout->HotReload();
+		stalePipeline = vkPipe;
+		vkPipe = VK_NULL_HANDLE;
+		CreateVkPipeline();
+	}
+#endif
 }

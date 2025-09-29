@@ -2,6 +2,7 @@
 
 #include "EWGraphics/Vulkan/Device_Buffer.h"
 
+#include "EWGraphics/Vulkan/GraphicsPipeline.h"
 
 namespace EWE {
 
@@ -9,11 +10,11 @@ namespace EWE {
 	inline void printmat4(lab::mat4& theMatrix, const std::string& matrixName) {
 		printf("matrix values : %s\n", matrixName.c_str());
 		for (uint8_t i = 0; i < 4; i++) {
-			printf("\t%.3f:%.3f:%.3f:%.3f\n", theMatrix.columns[i].x, theMatrix.columns[i].y, theMatrix.columns[i].z, theMatrix.columns[i].w);
+			printf("\t%.3f:%.3f:%.3f:%.3f\n", theMatrix.columns[i].component.x, theMatrix.columns[i].component.y, theMatrix.columns[i].component.z, theMatrix.columns[i].component.w);
 		}
 
 	}
-
+	RenderFramework* RenderFramework::instance = nullptr;
 
 	RenderFramework::RenderFramework(uint32_t windowWidth, uint32_t windowHeight, std::string windowName) :
 		//first, any members not mentioned here with brackets will be initialized
@@ -25,15 +26,17 @@ namespace EWE {
 		//imguiHandler{ mainWindow.getGLFWwindow(), MAX_FRAMES_IN_FLIGHT, eweRenderer.getSwapChainRenderPass() },
 		imageManager{ }
 	{
+		assert(instance == nullptr);
+		instance = this;
 #if EWE_DEBUG
 		printf("after finishing construction of engine\n");
 #endif
-		EWEPipeline::PipelineConfigInfo::pipelineRenderingInfoStatic = eweRenderer.getPipelineInfo();
+		PipelineConfigInfo::pipelineRenderingInfoStatic = eweRenderer.getPipelineInfo();
 #if EWE_DEBUG
 		printf("eight winds constructor, ENGINE_VERSION: %s \n", EWF_VERSION);
 #endif
 
-		leafSystem = Construct<LeafSystem>({});
+		leafSystem = Construct<LeafSystem>();
 
 #if EWE_DEBUG
 		printf("end of RenderFramework constructor \n");
@@ -42,8 +45,8 @@ namespace EWE {
 
 	RenderFramework::~RenderFramework() {
 
+		PipelineSystem::DestructAll();
 
-		PipelineSystem::Destruct();
 		Deconstruct(leafSystem);
 #if DECONSTRUCTION_DEBUG
 		printf("beginning of RenderFramework deconstructor \n");

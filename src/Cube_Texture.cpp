@@ -3,7 +3,6 @@
 
 #include "EWGraphics/Texture/Image_Manager.h"
 #include "EWGraphics/Texture/Sampler.h"
-#include "EWGraphics/Vulkan/TransferCommandManager.h"
 
 #include "EWGraphics/Texture/ImageFunctions.h"
 
@@ -21,7 +20,7 @@ namespace EWE {
             VkDeviceSize imageSize = layerSize * cubeImage.arrayLayers;
 
             void* data;
-            StagingBuffer* stagingBuffer = Construct<StagingBuffer>({ imageSize });
+            StagingBuffer* stagingBuffer = Construct<StagingBuffer>(imageSize);
             stagingBuffer->Map(data);
             uint64_t memAddress = reinterpret_cast<uint64_t>(data);
             cubeImage.mipLevels = 1;

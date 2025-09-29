@@ -20,7 +20,7 @@
 namespace EWE {
 	class RenderFramework {
 	public:
-
+		static RenderFramework* instance;
 		//i want to manually control all construciton here
 		RenderFramework(uint32_t windowWidth, uint32_t windowHeight, std::string windowName);
 		//fourth will be class member construciton without brackets
@@ -50,11 +50,6 @@ namespace EWE {
 		void EndEngineLoadScreen() {
 #if EWE_DEBUG
 			printf("~~~~ ENDING LOADING SCREEN ~~~ \n");
-#endif
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-			//dependent on this not being in the graphics thread, or it'll infinitely loop
-			SyncHub* syncHub = SyncHub::GetSyncHubInstance();
-			while (!TransferCommandManager::Empty() || syncHub->CheckFencesForUsage()) {/*printf("waiting on fences\n");*/ std::this_thread::sleep_for(std::chrono::nanoseconds(1)); }
 #endif
 			loadingEngine = false;
 		}

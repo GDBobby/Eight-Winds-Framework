@@ -7,8 +7,6 @@
 
 
 // std headers
-#include <cstring>
-#include <iostream>
 
 #include <unordered_set>
 #include <stack>
@@ -32,7 +30,7 @@ namespace EWE {
 
     EWEDevice* EWEDevice::eweDevice = nullptr;
 
-    const bool enableValidationLayers = true;// EWE_DEBUG;
+    const bool enableValidationLayers = EWE_DEBUG;
 
     // local callback functions
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -44,22 +42,23 @@ namespace EWE {
 
         switch (messageSeverity) {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            std::cout << "validation verbose: " << messageType << ":" << pCallbackData->pMessage << '\n' << std::endl;
+            printf("validation verbose: %d : %s\n", messageType, pCallbackData->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            std::cout << "validation info: " << messageType << ":" << pCallbackData->pMessage << '\n' << std::endl;
+            printf("validation info: %d : %s\n", messageType, pCallbackData->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
             std::string idName = pCallbackData->pMessageIdName;
-            std::cout << "validation warning: " << messageType << ":" << pCallbackData->pMessage << '\n' << std::endl;
+            printf("validation warning: %d : %s\n", messageType, pCallbackData->pMessage);
             break;
         }
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-            std::cout << "validation error: " << messageType << ":" << pCallbackData->pMessage << '\n' << std::endl;
+            printf("validation error: %d : %s\n", messageType, pCallbackData->pMessage);
 
 #if GPU_LOGGING
             std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
             logFile << "current frame index - " << VK::Object->frameIndex << std::endl;
+#if COMMAND_BUFFER_TRACING
             for (uint8_t i = 0; i < VK::Object->renderCommands.size(); i++) {
                 while (VK::Object->renderCommands[i].usageTracking.size() > 0) {
                     for (auto& usage : VK::Object->renderCommands[i].usageTracking.front()) {
@@ -68,6 +67,7 @@ namespace EWE {
                     VK::Object->renderCommands[i].usageTracking.pop();
                 }
             }
+#endif
             logFile.close();
 #endif
 
@@ -247,7 +247,7 @@ namespace EWE {
         //printf("device constructor \n");
         assert(eweDevice == nullptr && "EWEDevice already exists");
         eweDevice = this;
-        VK::Object = Construct<VK>({});
+        VK::Object = Construct<VK>();
 #if GPU_LOGGING
         {
             std::ofstream logFile{ GPU_LOG_FILE, std::ofstream::trunc };
@@ -408,11 +408,11 @@ namespace EWE {
         std::list<std::pair<uint32_t, uint32_t>> deviceScores{};
 
         EWE_VK(vkEnumeratePhysicalDevices, VK::Object->instance, &deviceCount, devices.data());
-        std::cout << "Device count: " << deviceCount << std::endl;
+        printf("Device count: %d\n", deviceCount);
 
         //printf("enumerate devices2 result : %u \n", deviceCount);
         if (deviceCount == 0) {
-            std::cout << "failed to find GPUs with Vulkan support!" << std::endl;
+            printf("failed to find GPUs with Vulkan support!\n");
 #if GPU_LOGGING
             //printf("opening file? \n");
             std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
@@ -493,11 +493,11 @@ namespace EWE {
         //printf("before get physical device properties \n");
         EWE_VK(vkGetPhysicalDeviceProperties, VK::Object->physicalDevice, &VK::Object->properties);
 #if EWE_DEBUG
-        std::cout << "Physical Device: " << VK::Object->properties.deviceName << std::endl;
+        printf("Physical Device: %s\n", VK::Object->properties.deviceName);
         deviceName = VK::Object->properties.deviceName;
-        std::cout << "max ubo, storage : " << VK::Object->properties.limits.maxUniformBufferRange << ":" << VK::Object->properties.limits.maxStorageBufferRange << std::endl;
-        std::cout << "minimum alignment " << VK::Object->properties.limits.minUniformBufferOffsetAlignment << std::endl;
-        std::cout << "max sampler anisotropy : " << VK::Object->properties.limits.maxSamplerAnisotropy << std::endl;
+        printf("max ubo, storage - %zu : %zu\n", VK::Object->properties.limits.maxUniformBufferRange, VK::Object->properties.limits.maxStorageBufferRange);
+        printf("minimum alignment - %zu\n", VK::Object->properties.limits.minUniformBufferOffsetAlignment);
+        printf("max sampler anisotropy : %zu", VK::Object->properties.limits.maxSamplerAnisotropy);
 #endif
 
 #if GPU_LOGGING
@@ -512,6 +512,27 @@ namespace EWE {
 
         //printf("max draw vertex count : %d \n", properties.limits.maxDrawVertexCount);
     }
+
+
+    struct DeviceExtensions {
+        VkBaseInStructure* head = nullptr;
+        VkBaseInStructure* tail = nullptr;
+        uint16_t count{ 0 };
+
+		uint16_t Add(VkBaseInStructure* extension) {
+			if (head == nullptr) {
+                head = extension;
+                tail = extension;
+			}
+			else {
+				tail->pNext = extension;
+				tail = extension;
+			}
+			count++;
+			return count;
+		}
+    };
+
 
     void EWEDevice::CreateLogicalDevice() {
 
@@ -545,59 +566,50 @@ namespace EWE {
             queueCreateInfos[i].pQueuePriorities = queuePriorities[i].data();
         }
 
-        //VkPhysicalDeviceMeshShaderFeaturesNV nvMeshStruct{};
-        //nvMeshStruct.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
-        //nvMeshStruct.pNext = nullptr;
-        //nvMeshStruct.taskShader = VK_TRUE;
-        //nvMeshStruct.meshShader = VK_TRUE;
+        DeviceExtensions deviceExts{};
+
+        VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
+        indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+        deviceExts.Add((VkBaseInStructure*)&indexingFeatures);
+        indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+        indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+        indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+        indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+        indexingFeatures.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+
         VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynState3{};
         dynState3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
-        dynState3.pNext = nullptr;
+        deviceExts.Add((VkBaseInStructure*)&dynState3);
         dynState3.extendedDynamicState3ColorBlendEnable = VK_TRUE;
         dynState3.extendedDynamicState3ColorBlendEquation = VK_TRUE;
         dynState3.extendedDynamicState3ColorWriteMask = VK_TRUE;
-        
+
         VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
         meshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+        deviceExts.Add((VkBaseInStructure*)&meshShaderFeatures);
         meshShaderFeatures.meshShader = VK_TRUE;
         meshShaderFeatures.taskShader = VK_TRUE;
-        //if (optionalExtensions.at(VK_NV_MESH_SHADER_EXTENSION_NAME)) {
-        //    meshShaderFeatures.pNext = &nvMeshStruct;
-        //}
-        //else {
-            meshShaderFeatures.pNext = &dynState3;
-        //}
-        //meshShaderFeatures.meshShaderQueries = VK_TRUE;
 
-        //VkPhysicalDeviceMeshShaderPropertiesEXT
-        
 
         VkPhysicalDeviceFeatures2 deviceFeatures2{};
         deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-        if (optionalExtensions.at(VK_EXT_MESH_SHADER_EXTENSION_NAME)) {
-            deviceFeatures2.pNext = &meshShaderFeatures;
-        }
-        else {
-            deviceFeatures2.pNext = &dynState3;
-        }
-        //deviceFeatures2.pNext = nullptr; //disables mesh extension
+        deviceExts.Add((VkBaseInStructure*)&deviceFeatures2);
         deviceFeatures2.features.samplerAnisotropy = VK_TRUE;
         deviceFeatures2.features.geometryShader = VK_TRUE;
         deviceFeatures2.features.wideLines = VK_TRUE;
         deviceFeatures2.features.tessellationShader = VK_TRUE;
-        
+
 #if EWE_DEBUG
         deviceFeatures2.features.fillModeNonSolid = VK_TRUE;
 #endif
 
-
         VkPhysicalDeviceDynamicRenderingFeatures dynamic_rendering_feature{};
-        dynamic_rendering_feature.pNext = &deviceFeatures2;
+		deviceExts.Add((VkBaseInStructure*)&dynamic_rendering_feature);
         dynamic_rendering_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
         dynamic_rendering_feature.dynamicRendering = VK_TRUE;
 
         VkPhysicalDeviceSynchronization2FeaturesKHR synchronization_2_feature{};
-        synchronization_2_feature.pNext = &dynamic_rendering_feature;
+		deviceExts.Add((VkBaseInStructure*)&synchronization_2_feature);
         synchronization_2_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
 
 #if USING_NVIDIA_AFTERMATH
@@ -616,7 +628,7 @@ namespace EWE {
 
         VkDeviceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.pNext = &synchronization_2_feature;
+        createInfo.pNext = deviceExts.head;
 
         createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -671,7 +683,7 @@ namespace EWE {
 
 
         if (optionalExtensions.at(VK_EXT_MESH_SHADER_EXTENSION_NAME)) {
-            VK::Object->meshShaderProperties = Construct<VkPhysicalDeviceMeshShaderPropertiesEXT>({});
+            VK::Object->meshShaderProperties = Construct<VkPhysicalDeviceMeshShaderPropertiesEXT>();
             VK::Object->meshShaderProperties->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT;
             VK::Object->meshShaderProperties->pNext = nullptr;
             VkPhysicalDeviceProperties2 testDeviceFeatures2{};
@@ -682,11 +694,11 @@ namespace EWE {
 
         VK::CmdDrawMeshTasksEXT = reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(vkGetDeviceProcAddr(VK::Object->vkDevice, "vkCmdDrawMeshTasksEXT"));
 #if EWE_DEBUG
-        std::cout << "getting device queues \n";
-        std::cout << "\t graphics family:queue index - " << VK::Object->queueIndex[Queue::graphics] << std::endl;
-        std::cout << "\t present family:queue index - " << VK::Object->queueIndex[Queue::present] << std::endl;
-        std::cout << "\t compute family:queue index - " << VK::Object->queueIndex[Queue::compute] << std::endl;
-        std::cout << "\t transfer family:queue index - " << VK::Object->queueIndex[Queue::transfer] << std::endl;
+        //std::cout << "getting device queues \n";
+        //std::cout << "\t graphics family:queue index - " << VK::Object->queueIndex[Queue::graphics] << std::endl;
+        //std::cout << "\t present family:queue index - " << VK::Object->queueIndex[Queue::present] << std::endl;
+        //std::cout << "\t compute family:queue index - " << VK::Object->queueIndex[Queue::compute] << std::endl;
+        //std::cout << "\t transfer family:queue index - " << VK::Object->queueIndex[Queue::transfer] << std::endl;
 #endif
         //printf("before graphics queue \n");
         EWE_VK(vkGetDeviceQueue, VK::Object->vkDevice, VK::Object->queueIndex[Queue::graphics], 0, &VK::Object->queues[Queue::graphics]);
@@ -722,17 +734,17 @@ namespace EWE {
 #endif
 
     void EWEDevice::CreateCommandPools() {
-        {
-            VkCommandPoolCreateInfo poolInfo = {};
-            poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-            poolInfo.queueFamilyIndex = VK::Object->queueIndex[Queue::graphics];
-            poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        
+        VkCommandPoolCreateInfo poolInfo = {};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.queueFamilyIndex = VK::Object->queueIndex[Queue::graphics];
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-            EWE_VK(vkCreateCommandPool, VK::Object->vkDevice, &poolInfo, nullptr, &VK::Object->renderCmdPool);
+        EWE_VK(vkCreateCommandPool, VK::Object->vkDevice, &poolInfo, nullptr, &VK::Object->renderCmdPool);
 #if DEBUG_NAMING
-            DebugNaming::SetObjectName(reinterpret_cast<void*>(VK::Object->renderCmdPool), VK_OBJECT_TYPE_COMMAND_POOL, "render cmd pool");
+        DebugNaming::SetObjectName(reinterpret_cast<void*>(VK::Object->renderCmdPool), VK_OBJECT_TYPE_COMMAND_POOL, "render cmd pool");
 #endif
-        }
+        
     }
     void EWEDevice::CreateSurface() { window.CreateWindowSurface(VK::Object->instance, &VK::Object->surface, GPU_LOGGING); }
 
@@ -815,9 +827,6 @@ namespace EWE {
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
         //extensions.push_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
         //extensions.push_back(VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
-
-        //extension.push_back()
-        //extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
         if (enableValidationLayers) {
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);

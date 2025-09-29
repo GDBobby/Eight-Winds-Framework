@@ -46,11 +46,7 @@ namespace EWE {
             return false; //error silencing, this should not be reached
         }
     }
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-    void GraphicsFence::CheckReturn(std::vector<CommandBuffer*>& output, uint64_t time) {
-#else
     void GraphicsFence::CheckReturn(uint64_t time) {
-#endif
         if (fence.CheckReturn(time)) {
 
 #if DEBUGGING_FENCES
@@ -77,31 +73,6 @@ namespace EWE {
             fence.inUse = false;
         }
     }
-
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-    void TransferFence::WaitReturnCallbacks(std::vector<TransferCommand>& output, uint64_t time) {
-
-        if (fence.CheckReturn(time)) {
-
-#if DEBUGGING_FENCES
-            fence.log.push_back("checked return, continuing in transfer");
-#endif
-            if (signalSemaphoreForGraphics != nullptr) {
-                if (callbacks.images.size() > 0 || callbacks.pipeBarriers.size() > 0) {
-                    signalSemaphoreForGraphics->BeginWaiting();
-                }
-                signalSemaphoreForGraphics->FinishSignaling();
-                signalSemaphoreForGraphics = nullptr;
-            }
-            output.push_back(std::move(callbacks));
-#if DEBUGGING_FENCES
-            fence.log.push_back("allowing transfer fence to be reobtained");
-#endif
-            fence.inUse = false;
-            return;
-        }
-    }
-#endif
 
 
     RenderSyncData::RenderSyncData() {
@@ -196,43 +167,33 @@ namespace EWE {
 
     thread_local ThreadedSingleTimeCommands* QueueSyncPool::threadSTC;
 
-    QueueSyncPool::QueueSyncPool(uint8_t size) :
+    QueueSyncPool::QueueSyncPool(uint16_t size) :
         size{ size },
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-        transferFences{ size },
-        graphicsFences{ size },
-#else
         fences{size},
         mainThreadGraphicsFences{size},
         mainThreadGraphicsCmdBufs{ size },
-#endif
         semaphores{ static_cast<std::size_t>(size * 2)},
         threadedSTCs{
             ThreadPool::GetKVContainerWithThreadIDKeys<ThreadedSingleTimeCommands>()
         }
         //cmdBufs{}
     {
-        assert(size <= 64 && "this isn't optimized very well, don't use big size"); //big size probably also isn't necessary
+        //assert(size <= 64 && "this isn't optimized very well, don't use big size"); //big size probably also isn't necessary
 
         VkFenceCreateInfo fenceInfo{};
         fenceInfo.flags = 0;
         fenceInfo.pNext = nullptr;
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        for (uint8_t i = 0; i < size; i++) {
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-            EWE_VK(vkCreateFence, VK::Object->vkDevice, &fenceInfo, nullptr, &transferFences[i].fence.vkFence);
-            EWE_VK(vkCreateFence, VK::Object->vkDevice, &fenceInfo, nullptr, &graphicsFences[i].fence.vkFence);
-#else
+        for (uint16_t i = 0; i < size; i++) {
             EWE_VK(vkCreateFence, VK::Object->vkDevice, &fenceInfo, nullptr, &fences[i].vkFence);
             EWE_VK(vkCreateFence, VK::Object->vkDevice, &fenceInfo, nullptr, &mainThreadGraphicsFences[i].fence.vkFence);
-#endif
         }
 
         VkSemaphoreCreateInfo semInfo{};
         semInfo.flags = 0;
         semInfo.pNext = nullptr;
         semInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        for (uint8_t i = 0; i < size * 2; i++) {
+        for (uint16_t i = 0; i < size * 2; i++) {
             EWE_VK(vkCreateSemaphore, VK::Object->vkDevice, &semInfo, nullptr, &semaphores[i].vkSemaphore);
 #if DEBUG_NAMING
             std::string name = "QueueSyncPool semaphore[" + std::to_string(i) + ']';
@@ -254,7 +215,6 @@ namespace EWE {
         cmdBufAllocInfo.commandBufferCount = static_cast<uint32_t>(cmdBufVector.size());
         cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-#if !ONE_SUBMISSION_THREAD_PER_QUEUE
         poolInfo.queueFamilyIndex = VK::Object->queueIndex[Queue::graphics];
         EWE_VK(vkCreateCommandPool, VK::Object->vkDevice, &poolInfo, nullptr, &mainThreadSTCGraphicsPool);
         cmdBufAllocInfo.commandPool = mainThreadSTCGraphicsPool;
@@ -264,7 +224,6 @@ namespace EWE {
         for (int i = 0; i < size; i++) {
             mainThreadGraphicsCmdBufs[i] = cmdBufVector[i];
         }
-#endif
 
         for (auto& stc  : threadedSTCs) {
             auto& buf = stc.value;
@@ -291,14 +250,9 @@ namespace EWE {
         }
     }
     QueueSyncPool::~QueueSyncPool() {
-        for (uint8_t i = 0; i < size; i++) {
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-            EWE_VK(vkDestroyFence, VK::Object->vkDevice, transferFences[i].fence.vkFence, nullptr);
-            EWE_VK(vkDestroyFence, VK::Object->vkDevice, graphicsFences[i].fence.vkFence, nullptr);
-#else
+        for (uint16_t i = 0; i < size; i++) {
             EWE_VK(vkDestroyFence, VK::Object->vkDevice, fences[i].vkFence, nullptr);
             EWE_VK(vkDestroyFence, VK::Object->vkDevice, mainThreadGraphicsFences[i].fence.vkFence, nullptr);
-#endif
             EWE_VK(vkDestroySemaphore, VK::Object->vkDevice, semaphores[i].vkSemaphore, nullptr);
             EWE_VK(vkDestroySemaphore, VK::Object->vkDevice, semaphores[i + size].vkSemaphore, nullptr);
         }
@@ -307,7 +261,6 @@ namespace EWE {
 
         std::vector<VkCommandBuffer> rawCmdBufs(size);
 
-        threadedSTCs.Lock();
         for (auto& stc : threadedSTCs) {
             for (uint8_t queue = 0; queue < Queue::_count; queue++) {
                 if (stc.value.commandPools[queue] != VK_NULL_HANDLE) {
@@ -320,21 +273,18 @@ namespace EWE {
                 }
             }
         }
-        threadedSTCs.Unlock();
 
-#if !ONE_SUBMISSION_THREAD_PER_QUEUE
         for (uint16_t i = 0; i < size; i++) {
             rawCmdBufs[i] = mainThreadGraphicsCmdBufs[i].cmdBuf;
             EWE_VK(vkFreeCommandBuffers, VK::Object->vkDevice, mainThreadSTCGraphicsPool, size, rawCmdBufs.data());
             EWE_VK(vkDestroyCommandPool, VK::Object->vkDevice, mainThreadSTCGraphicsPool, nullptr);
         }
-#endif
     }
 #if 0//SEMAPHORE_TRACKING
 
 #else
     Semaphore& QueueSyncPool::GetSemaphore(VkSemaphore semaphore) {
-        for (uint8_t i = 0; i < size * 2; i++) {
+        for (uint16_t i = 0; i < size * 2; i++) {
             if (semaphores[i].vkSemaphore == semaphore) {
                 return semaphores[i];
             }
@@ -345,25 +295,21 @@ namespace EWE {
     }
 #endif
 
-#if SEMAPHORE_TRACKING
-    Semaphore* QueueSyncPool::GetSemaphoreForSignaling(std::source_location srcLoc) {
-#else
     Semaphore* QueueSyncPool::GetSemaphoreForSignaling() {
-#endif
+        
         std::unique_lock<std::mutex> semLock(semAcqMut);
         while (true) {
             for (uint16_t i = 0; i < size * 2; i++) {
                 if (semaphores[i].Idle()) {
 #if SEMAPHORE_TRACKING
-                    semaphores[i].BeginSignaling(srcLoc);
-#else
-                    semaphores[i].BeginSignaling();
+                    printf("need to set up stacktrace here\n");
 #endif
+                    semaphores[i].BeginSignaling();
                     return &semaphores[i];
                 }
             }
             //potentially add a resizing function here
-            assert(false && "no semaphore available, if waiting for a semaphore to become available instead of crashing is acceptable, comment this line");
+            //assert(false && "no semaphore available, if waiting for a semaphore to become available instead of crashing is acceptable, comment this line");
             std::this_thread::sleep_for(std::chrono::microseconds(1));
         }
     }
@@ -380,7 +326,7 @@ namespace EWE {
                     }
                 }
                 //potentially add a resizing function here
-                assert(false && "no available command buffer when requested, if waiting for a cmdbuf to become available instead of crashing is acceptable, comment this line");
+                //assert(false && "no available command buffer when requested, if waiting for a cmdbuf to become available instead of crashing is acceptable, comment this line");
                 std::this_thread::sleep_for(std::chrono::microseconds(1));
             }
         }
@@ -399,179 +345,19 @@ namespace EWE {
                 }
             }
             //potentially add a resizing function here
-            assert(false && "no available command buffer when requested, if waiting for a cmdbuf to become available instead of crashing is acceptable, comment this line");
+            //assert(false && "no available command buffer when requested, if waiting for a cmdbuf to become available instead of crashing is acceptable, comment this line");
             std::this_thread::sleep_for(std::chrono::microseconds(1));
         }
     }
 
     bool QueueSyncPool::CheckFencesForUsage() {
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-        for (uint16_t i = 0; i < size; i++) {
-            if (transferFences[i].fence.inUse) {
-                return true;
-            }
-        }
-        for (uint16_t i = 0; i < size; i++) {
-            if (graphicsFences[i].fence.inUse) {
-                return true;
-            }
-        }
-        return false;
-#else
         for (auto& fence : mainThreadGraphicsFences) {
             if (fence.fence.inUse) {
                 return true;
             }
         }
         return false;
-#endif
     }
-
-#if ONE_SUBMISSION_THREAD_PER_QUEUE
-    void QueueSyncPool::EndSingleTimeCommandGraphicsGroup(CommandBuffer& cmdBuf, std::vector<Semaphore*> waitSemaphores, std::vector<ImageInfo*> imageInfos) {
-        EWE_VK(vkEndCommandBuffer, cmdBuf);
-        graphicsAsyncMut.lock();
-        graphicsSTCGroup.emplace_back(cmdBuf, waitSemaphores, imageInfos);
-        graphicsAsyncMut.unlock();
-    }
-
-    template<typename T>
-    void InsertSecondIntoFirst(std::vector<T>& first, std::vector<T>& second) {
-        if (second.size() > 0) {
-            first.insert(first.begin(), std::make_move_iterator(second.begin()), std::make_move_iterator(second.end()));
-        }
-    }
-
-    void QueueSyncPool::HandleTransferCallbacks(std::vector<TransferCommand> callbacks) {
-
-        std::vector<Semaphore*> semaphoreData{};
-        if ((callbacks[0].images.size() > 0) || (callbacks[0].pipeBarriers.size() > 0)) {
-            assert(callbacks[0].semaphore != nullptr);
-            semaphoreData.push_back(callbacks[0].semaphore);
-        }
-
-        for (int i = 1; i < callbacks.size(); i++) {
-            InsertSecondIntoFirst(callbacks[0].commands, callbacks[i].commands);
-            InsertSecondIntoFirst(callbacks[0].pipeBarriers, callbacks[i].pipeBarriers);
-            InsertSecondIntoFirst(callbacks[0].images, callbacks[i].images);
-            if (callbacks[i].semaphore != nullptr) {
-                semaphoreData.push_back(callbacks[i].semaphore);
-            }
-#if EWE_DEBUG
-            if ((callbacks[i].images.size() > 0) || (callbacks[i].pipeBarriers.size() > 0)) {
-
-                assert(callbacks[i].semaphore != nullptr);
-            }
-#endif
-        }
-
-        if (callbacks[0].commands.size() > 0) {
-            std::sort(callbacks[0].commands.begin(), callbacks[0].commands.end());
-            ResetCommandBuffers(callbacks[0].commands, Queue::transfer);
-        }
-
-        PipelineBarrier::SimplifyVector(callbacks[0].pipeBarriers);
-
-        for (auto& callback : callbacks) {
-            for (auto& sb : callback.stagingBuffers) {
-                sb->Free();
-                Deconstruct(sb);
-            }
-        }
-        if ((callbacks[0].images.size() > 0) || (callbacks[0].pipeBarriers.size() > 0)) {
-            CommandBuffer& cmdBuf = GetCmdBufSingleTime(Queue::graphics);
-
-            std::vector<ImageInfo*> genMipImages{};
-            for (auto& img : callbacks[0].images) {
-                if (img->descriptorImageInfo.imageLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
-                    genMipImages.push_back(img);
-                }
-            }
-            if (genMipImages.size() > 1) {
-                Image::GenerateMipMapsForMultipleImagesTransferQueue(cmdBuf, genMipImages);
-            }
-            else if (genMipImages.size() == 1) {
-                Image::GenerateMipmaps(cmdBuf, genMipImages[0], Queue::transfer);
-            }
-
-            for (auto& barrier : callbacks[0].pipeBarriers) {
-                barrier.Submit(cmdBuf);
-            }
-            EndSingleTimeCommandGraphicsGroup(cmdBuf, semaphoreData, callbacks[0].images);
-        }
-    }
-
-    void QueueSyncPool::CheckFencesForCallbacks() {
-        assert(std::this_thread::get_id() == VK::Object->mainThreadID);
-
-
-        std::vector<TransferCommand> callbacks{};
-        for (uint16_t i = 0; i < size; i++) {
-            if (transferFences[i].fence.inUse) {
-                //the pipeline barriers should already be simplified, might be worth calling it again in case 2 transfers submitted before graphics got to it
-                //probably worth profiling
-
-#if DEBUGGING_FENCES
-                transferFences[i].fence.log.push_back("beginning transfer fence check return");
-#endif
-                transferFences[i].WaitReturnCallbacks(callbacks, 0);
-            }
-        }
-        if (callbacks.size() != 0) {
-            ThreadPool::Enqueue(&QueueSyncPool::HandleTransferCallbacks, this, std::move(callbacks));
-        }
-
-
-        std::vector<CommandBuffer*> graphicsCmdBuf{};
-        for (uint16_t i = 0; i < size; i++) {
-            if (graphicsFences[i].fence.inUse) {
-#if DEBUGGING_FENCES
-                graphicsFences[i].fence.log.push_back("beginning graphics fence check return");
-#endif
-                graphicsFences[i].CheckReturn(graphicsCmdBuf, 0);
-            }
-        }
-        if (graphicsCmdBuf.size() > 0) {
-            std::sort(graphicsCmdBuf.begin(), graphicsCmdBuf.end());
-            ResetCommandBuffers(graphicsCmdBuf, Queue::graphics);
-        }
-    }
-    GraphicsFence& QueueSyncPool::GetGraphicsFence() {
-
-        std::unique_lock<std::mutex> graphicsAcqLock(graphicsFenceAcqMut);
-        while (true) {
-            for (uint8_t i = 0; i < size; i++) {
-                if (!graphicsFences[i].fence.inUse) {
-                    graphicsFences[i].fence.inUse = true;
-#if DEBUGGING_FENCES
-                    graphicsFences[i].fence.log.push_back("set graphics fence to in-use");
-#endif
-                    return graphicsFences[i];
-                }
-            }
-            //potentially add a resizing function here
-            assert(false && "no available fence when requested, if waiting for a fence to become available instead of crashing is acceptable, comment this line");
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
-        }
-    }
-    TransferFence& QueueSyncPool::GetTransferFence() {
-        std::unique_lock<std::mutex> transferFenceLock(transferFenceAcqMut);
-        while (true) {
-            for (uint8_t i = 0; i < size; i++) {
-                if (!transferFences[i].fence.inUse) {
-                    transferFences[i].fence.inUse = true;
-#if DEBUGGING_FENCES
-                    transferFences[i].fence.log.push_back("set transfer fence to in-use");
-#endif
-                    return transferFences[i];
-                }
-            }
-            //potentially add a resizing function here
-            assert(false && "no available fence when requested, if waiting for a fence to become available instead of crashing is acceptable, comment this line");
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
-        }
-    }
-#else
 
     void QueueSyncPool::CheckFencesForCallbacks() {
         assert(std::this_thread::get_id() == VK::Object->mainThreadID);
@@ -589,7 +375,7 @@ namespace EWE {
     Fence& QueueSyncPool::GetFence() {
         std::unique_lock<std::mutex> transferFenceLock(fenceAcqMut);
         while (true) {
-            for (uint8_t i = 0; i < size; i++) {
+            for (uint16_t i = 0; i < size; i++) {
                 if (!fences[i].inUse) {
                     fences[i].inUse = true;
     #if DEBUGGING_FENCES
@@ -599,7 +385,7 @@ namespace EWE {
                 }
             }
             //potentially add a resizing function here
-            assert(false && "no available fence when requested, if waiting for a fence to become available instead of crashing is acceptable, comment this line");
+            //assert(false && "no available fence when requested, if waiting for a fence to become available instead of crashing is acceptable, comment this line");
             std::this_thread::sleep_for(std::chrono::microseconds(1));
         }
     }
@@ -617,11 +403,9 @@ namespace EWE {
                 }
             }
             //potentially add a resizing function here
-            assert(false && "no available fence when requested, if waiting for a fence to become available instead of crashing is acceptable, comment this line");
+            //assert(false && "no available fence when requested, if waiting for a fence to become available instead of crashing is acceptable, comment this line");
             std::this_thread::sleep_for(std::chrono::microseconds(1));
         }
     }
-
-#endif
 
 }//namespace EWE
